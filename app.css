@@ -1,4 +1,4 @@
-@import url("tokens.css?v=d3913724");
+@import url("tokens.css?v=3f91c674");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -52,7 +52,15 @@ button:disabled{cursor:default;opacity:.45}
 .detail .ghost.link{width:fit-content}          /* 상세 칸 안(W5 그림 링크)도 같은 이유로 글자 폭만 */
 .body{display:flex;flex:1;min-height:0}
 .rail{display:flex;flex-direction:column;gap:var(--space-2);width:400px;flex:none;padding:var(--space-6) var(--space-7);background:var(--bg-surface);border-right:1px solid var(--border-subtle)}
+.rail{position:relative;transition:width .18s}
 .rail .lbl{font-size:13.5px;color:var(--text-muted)}
+/* 전문가 콘솔의 추론 로그: 사이드바처럼 접고 편다 (접으면 56px 띠 + 세로 이름) */
+.rail-toggle{position:absolute;top:var(--space-4);right:var(--space-4);width:32px;height:32px;font-size:18px}
+.rail-log{display:flex;flex-direction:column;gap:var(--space-2);flex:1;min-height:0} .rail .log .lhead{padding-right:40px}
+.rail-vlabel{display:none}
+.rail.collapsed{width:56px;padding:var(--space-4) var(--space-2);align-items:center}
+.rail.collapsed .rail-toggle{position:static} .rail.collapsed .rail-log{display:none}
+.rail.collapsed .rail-vlabel{display:block;writing-mode:vertical-rl;margin-top:var(--space-4);font-size:13px;letter-spacing:.1em;color:var(--text-muted)}
 .rail .spacer{flex:1}
 .stage{display:flex;flex-direction:column;gap:var(--space-5);flex:1;min-width:0;padding:28px 48px 32px}
 .stage .spacer{flex:1}
@@ -249,7 +257,12 @@ button:disabled{cursor:default;opacity:.45}
 .kg-legend .kg-e.prop{stroke:var(--text-muted)}   /* 그래프 속 경로 밖 선은 장식이라 흐려도 되지만, 범례 견본은 규칙을 알려 주는 표시라 3:1 이상 */
 /* 일반 시트: 4칸 작은 그림 + 같은 번호의 문장 목록 */
 .sheet.wide{width:min(800px,calc(100vw - 48px))}
-.kg-plain .kg-l{font-size:14px}
+.kg-plain .kg-l{font-size:14.5px}
+/* 일반 시트: 곡선·굵은 선(경로는 도착 노드 상태색), 상태색을 옅게 깐 노드 + 큰 상태 글리프, 번호는 왼쪽 위 배지, 원인 칸은 살짝 밝은 띠 */
+.kg-plain .kg-e{stroke-width:3;opacity:.85} .kg-plain .kg-n.on .kg-s{fill:color-mix(in srgb,var(--ink,var(--text-muted)) 16%,var(--bg-surface));stroke-width:2.5}
+.kg-plain .kg-gl{font-size:19px}
+.kg-numb circle{fill:var(--bg-base);stroke:var(--text-muted);stroke-width:1} .kg-numb .kg-num{font:700 12px var(--font-mono);fill:var(--text-primary)}
+.kg-band{fill:var(--bg-input);opacity:.5}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}
@@ -260,6 +273,13 @@ button:disabled{cursor:default;opacity:.45}
 .kg-ring{display:none;fill:none;stroke:var(--text-primary);stroke-width:1.5;vector-effect:non-scaling-stroke}
 .kg-n.sel .kg-ring{display:block}
 .kg-n:focus-visible .kg-ring{display:block;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 2}   /* 선택(실선)과 키보드 포커스(점선·라임)를 구분 */
+/* 이번 경로 밖 노드: 라벨은 숨기고(visibility라 getBBox는 됨) 올리거나 선택·포커스할 때만, 모양·선은 흐리게 */
+.kg-svg:not(.kg-plain) .kg-n:not(.on):not(.sel):not(:hover):not(:focus) .kg-l{visibility:hidden}
+.kg-svg.focus .kg-e:not(.on){opacity:.5}
+.kg-svg.focus .kg-l{font-size:13px} .kg-svg.focus .kg-col{font-size:13px} .kg-svg.focus .kg-l.id{font-size:10px}
+.kg-svg.focus .kg-e{stroke-width:1.5} .kg-svg.focus .kg-e.on{stroke-width:2.5}
+.kg-view{display:flex;gap:var(--space-1)} .kg-view .seg-opt{height:28px;padding:0 var(--space-3);font-size:12px}
+.kg-quiet{margin-left:auto;font-size:12px;color:var(--text-muted)}
 .kg-l.id{font:400 9px var(--font-mono)}
 .kg-panel{height:176px;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);overflow:hidden}
 .kg-ph{display:flex;align-items:center;gap:var(--space-3);min-width:0}
