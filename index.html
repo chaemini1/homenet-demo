@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko" data-mode="demo"><head><meta charset="utf-8">
+<title>[데모] 홈넷 진단 도우미</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23141416'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23cdea50'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="fonts.css?v=dafce545">
+<link rel="stylesheet" href="app.css?v=dafce545">
+</head><body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">홈넷 진단 도우미</div><span class="pill" role="note" title="예시 데이터예요. 진단 기록은 새로고침하면 처음 예시로 돌아가고, 설정은 이 브라우저에 남아요">데모 · 새로고침하면 기록 초기화</span><a class="ghost" href="./" data-scenario="wifi" title="와이파이 문제 예시 (처음부터)">와이파이 예시</a><a class="ghost" href="./?scenario=outside" data-scenario="outside" title="통신사 쪽 문제 예시 (처음부터)">통신사 예시</a>
+    <div id="nav-normal" style="display:contents">
+    <nav class="tabs" aria-label="탭"><button type="button" class="tab on" data-nav="home">홈</button><button type="button" class="tab" data-nav="records">기록</button></nav>
+    <div class="status-pill" id="status-pill" aria-live="polite"><span class="dot ok"></span><span id="status-pill-text">오프라인 진단 준비됨</span></div>
+    <button type="button" class="pill checking" id="expert-pill" data-nav="expert" hidden>전문가 모드</button>
+    <div class="spacer"></div>
+    <span class="isp" id="isp"></span>
+    <span id="isp-call" style="display:contents"></span>
+    <button class="ghost" type="button" data-nav="settings">설정</button>
+    </div>
+    <div id="nav-expert" style="display:contents" hidden></div>
+  </header>
+  <div class="body">
+    <aside class="rail" id="rail"><p class="state">불러오는 중… 이 글자만 계속 보이면 주소가 http로 시작하는지 확인하세요 (파일을 더블클릭해서는 안 열려요). http인데도 그렇다면 서버가 .js 파일 형식을 잘못 알려 주는 경우일 수 있어요</p></aside>
+    <main class="stage" id="stage"></main>
+  </div>
+</div>
+<dialog id="sheet" class="sheet" aria-labelledby="sheet-title"></dialog>
+<script type="module" src="app.js?v=dafce545"></script>
+</body></html>

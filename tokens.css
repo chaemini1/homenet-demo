@@ -1,0 +1,14 @@
+/* Figma "01 Foundations" 그대로. 새 값을 추가하지 않는다. */
+:root{
+  --bg-base:#141416; --bg-surface:#1d1d20; --bg-input:#26262b;
+  --border-subtle:#2b2b30; --border-strong:#34343a;
+  --text-primary:#ececec; --text-secondary:#d8d8dc; --text-muted:#8b8b93; --text-on-accent:#141416;
+  --accent:#cdea50; --accent-bg:rgba(205,234,80,.14);
+  --success:#4cc27e; --success-bg:rgba(76,194,126,.14);
+  --warning:#f0a13d; --warning-bg:rgba(240,161,61,.14);
+  --critical:#ec5b51; --critical-bg:rgba(236,91,81,.14);
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-7:28px;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:10px; --radius-xl:12px; --radius-full:999px;
+  --font-ui:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
