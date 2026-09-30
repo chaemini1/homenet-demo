@@ -103,8 +103,11 @@ export const settingsStageHTML = (d, values) => `<div class="chead big"><b>${esc
 
 // ==== WE1 전문가 콘솔 ====
 export const expertTopbarHTML = t => `<span class="pill checking">${dotHTML('checking')}${esc(t.pill)}</span><div class="spacer"></div><span class="isp">${esc(t.model)}&nbsp;&nbsp;${esc(t.kg)}</span><span class="toggle-row">${esc(t.toggle_label)}<button type="button" class="toggle on" role="switch" aria-checked="true" data-expert-off><span class="knob"></span></button></span><button type="button" class="ghost" data-nav="settings">설정</button>`;
-export const logRowHTML = e => `<div class="logrow"><span class="lt">${esc(e.time)}</span><span class="tag ${esc(e.tone)}">${esc(e.tag)}</span><span class="lx">${esc(e.text)}</span></div>`;
-export const expertRailHTML = log => `<div class="log"><div class="lhead"><b>${esc(log.title)}</b><span>${esc(log.range)}</span></div>${log.entries.length ? log.entries.map(logRowHTML).join('') : `<p class="state">${esc(log.empty_text)}</p>`}</div><div class="spacer"></div><button type="button" class="btn sec" data-event="export_log">${esc(log.export_label)}</button>`;
+// 로그 속 KG id를 버튼으로(known에 있는 것만). known이 없으면 예전 출력 그대로. 눌리면 app.js가 그래프 노드를 선택한다
+const KG_ID = /\b(?:symptom|cause|action|evidence|remedy)_[a-z0-9_]+/g;
+const withIdRefs = (text, known) => known ? esc(text).replace(KG_ID, m => known.has(m) ? `<button type="button" class="idref" data-kg="${m}">${m}</button>` : m) : esc(text);
+export const logRowHTML = (e, known) => `<div class="logrow"><span class="lt">${esc(e.time)}</span><span class="tag ${esc(e.tone)}">${esc(e.tag)}</span><span class="lx">${withIdRefs(e.text, known)}</span></div>`;
+export const expertRailHTML = (log, known) => `<div class="log"><div class="lhead"><b>${esc(log.title)}</b><span>${esc(log.range)}</span></div>${log.entries.length ? log.entries.map(e => logRowHTML(e, known)).join('') : `<p class="state">${esc(log.empty_text)}</p>`}</div><div class="spacer"></div><button type="button" class="btn sec" data-event="export_log">${esc(log.export_label)}</button>`;
 // 일반 사용자 PathCard와 같은 모습(칸 + 글리프 + 라벨), 문구는 전문 용어 유지. 라벨 있는 링크만 칸 사이에 표시.
 export function topologyHTML(t) {
   const seg = n => `<div class="seg ${tone(n.tone)}"><div class="box">${GLYPH[tone(n.tone)] ?? '?'}</div><div class="lab">${esc(n.label)}</div><div class="cap">${esc(n.caption)}</div></div>`;
@@ -149,8 +152,8 @@ const kgMini = (ty, cls = 'kg-n') => { const [w, h] = kgSize(ty); return `<svg c
 
 // 전문가: KG 전체(회색) + 이번 진단 경로(path의 tone)만 색·굵은 선·글리프. 좌표는 kg.json에 이미 있다(브라우저 계산 0).
 // 좌표가 없거나 KG에 없는 경로 id는 그리지 않고 아래 foot에 적는다. 출처 미확인이면 pill·SVG 안 도장·notice.
-// ponytail: role=list(읽기 전용 그림). 노드 선택·키보드 이동·패널은 U4c에서 listbox로
-export function kgGraphHTML(kg, path = []) {
+// 노드는 listbox의 option: 선택은 하나(aria-selected), Tab 정지점도 선택 노드 하나(로빙 tabindex). o.sel = 이전 선택, o.log = 패널의 '근거·로그'용 로그 줄
+export function kgGraphHTML(kg, path = [], o = {}) {
   const { meta } = kg, T = meta.text, [W, H] = meta.view, unverified = meta.provenance !== 'team';
   const at = new Map(kg.nodes.filter(n => Number.isFinite(n.x) && Number.isFinite(n.y)).map(n => [n.id, n]));
   const tones = new Map(), missing = [];
@@ -162,16 +165,18 @@ export function kgGraphHTML(kg, path = []) {
   });
   const rank = n => kgType(meta, n.type).rank ?? 99;
   const nodes = [...at.values()].sort((a, b) => tones.has(b.id) - tones.has(a.id) || rank(a) - rank(b) || a.id.localeCompare(b.id));   // 읽는 순서: 경로 → 타입 → id
+  // 기본 선택: 이전 선택 → 채택 원인 → 첫 경로 노드 → 첫 노드 (항상 하나)
+  const selId = at.has(o.sel) ? o.sel : (nodes.find(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ?? nodes[0])?.id;
   const node = n => {
-    const ty = kgType(meta, n.type), [w, h] = kgSize(ty), t = tones.get(n.id), adopted = ty.badge && t === 'bad';
+    const ty = kgType(meta, n.type), [w, h] = kgSize(ty), t = tones.get(n.id), adopted = ty.badge && t === 'bad', sel = n.id === selId;
     const aria = [`${ty.ko}: ${n.name}`, t && meta.states[t], adopted && T.adopted, n.proposed && T.proposed].filter(Boolean).join(', ');
     const glyph = t && KG_GLYPH[t] ? `<text class="kg-gl" x="${kgGlyphX(ty, w)}">${KG_GLYPH[t]}</text>` : '';
     // 기각(out) 라벨은 두 번: 선을 가리는 배경색 테두리는 장식 없는 뒤 글자(kg-halo)에만 — 취소선에 테두리가 붙으면 글자 가운데를 지운다
     const label = cls => `<text class="kg-l${cls}" y="${h / 2 + 12}">${esc(n.label ?? n.name)}</text>`;
-    return `<g class="kg-n${t ? ` on ${t}` : ''}${n.proposed ? ' prop' : ''}" transform="translate(${n.x} ${n.y})" role="listitem" aria-label="${esc(aria)}"><title>${esc(n.name)} · ${esc(n.id)}</title>${kgShape(ty)}`
-      + `<g aria-hidden="true">${glyph}${adopted ? kgBadge(w, h) : ''}${t === 'out' ? label(' kg-halo') : ''}${label('')}</g></g>`;
+    return `<g class="kg-n${t ? ` on ${t}` : ''}${n.proposed ? ' prop' : ''}${sel ? ' sel' : ''}" transform="translate(${n.x} ${n.y})" role="option" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" data-kg="${esc(n.id)}" aria-label="${esc(aria)}"><title>${esc(n.name)} · ${esc(n.id)}</title>${kgShape(ty)}`
+      + `<g aria-hidden="true"><circle class="kg-ring" r="${r1(Math.max(w, h) / 2 + 7)}"/>${glyph}${adopted ? kgBadge(w, h) : ''}${t === 'out' ? label(' kg-halo') : ''}${label('')}</g></g>`;
   };
-  const svg = `<svg class="kg-svg" viewBox="0 0 ${W} ${H}" role="list" aria-labelledby="kg-h"${unverified ? ' aria-describedby="kg-note"' : ''}>`
+  const svg = `<svg class="kg-svg" viewBox="0 0 ${W} ${H}" role="listbox" aria-labelledby="kg-h"${unverified ? ' aria-describedby="kg-note"' : ''}>`
     + kgMarkers('kgx', ['ctx', ...Object.keys(TONE)])
     + `<g aria-hidden="true">${edges.filter(e => !e.on).map(e => e.html).join('')}${edges.filter(e => e.on).map(e => e.html).join('')}</g>`
     + nodes.map(node).join('')
@@ -187,8 +192,30 @@ export function kgGraphHTML(kg, path = []) {
   const counts = String(T.counts ?? '').replace(/\{(\w+)\}/g, (m, k) => meta.counts?.[k] ?? m);
   return `<section class="card kg"><div class="chead"><b id="kg-h">${esc(T.title)}</b>${unverified ? pillHTML({ tone: 'unknown', text: T.badge }) : ''}<div class="spacer"></div><span>${esc(counts)}</span></div>`
     + `${svg}<div class="kg-legend">${legend}</div>`
+    + `<div class="kg-panel" id="kg-panel">${kgPanelHTML(kg, selId, path, o.log)}</div>`
     + (unverified ? `<p class="foot" id="kg-note">${esc(T.notice)}</p>` : '')
     + (missing.length ? `<p class="foot">${esc(T.missing)} ${esc(missing.join(', '))}</p>` : '') + '</section>';
+}
+
+// 선택 노드 패널(높이 고정): 머리(이름·id·상태) + 종류 | 들어오는 관계 | 나가는 관계 | 근거·로그. 이웃은 버튼(data-kg) → 그 노드 선택
+// 머리만 aria-live: 화살표로 옮길 때마다 패널 전체를 읽으면 시끄럽다(노드 자체의 aria-label이 이미 읽힌다)
+export function kgPanelHTML(kg, id, path = [], log = []) {
+  const { meta } = kg, T = meta.text, n = kg.nodes.find(x => x.id === id);
+  if (!n) return `<p class="kg-hint">${esc(T.panel_hint)}</p>`;
+  const ty = kgType(meta, n.type), p = path.find(x => x.id === id), t = p && kgTone(p.tone);
+  const name = new Map(kg.nodes.map(x => [x.id, x.name]));
+  const rel = (e, other) => `<li><span class="rel">${esc(meta.relations?.[e.r] ?? e.r)}</span><button type="button" class="idref nb" data-kg="${esc(other)}">${esc(name.get(other) ?? other)}</button></li>`;
+  const list = items => items.length ? `<ul>${items.join('')}</ul>` : '<p class="none">—</p>';
+  const logs = log.filter(e => String(e.text).includes(id));
+  const refs = (n.refs ?? []).map(r => `<li><span class="rel">${esc(r.kind)}</span>${esc(r.text)}</li>`)
+    .concat(logs.map(e => `<li><span class="rel">${esc(e.time)} ${esc(e.tag)}</span>${esc(e.text)}</li>`));
+  return `<div class="kg-ph" aria-live="polite">${kgMini(ty)}<b>${esc(n.name)}</b><code>${esc(n.id)}</code>`
+    + (t ? pillHTML({ tone: t === 'out' ? 'unknown' : t, text: meta.states[t] ?? t }) : '')
+    + (n.proposed ? `<span class="chip">${esc(T.proposed)}</span>` : '') + `</div>`
+    + `<div class="kg-pc"><div><h4>${esc(T.kind)}</h4><p>${esc(ty.ko)}</p></div>`
+    + `<div><h4>${esc(T.in)}</h4>${list(kg.edges.filter(e => e.t === id).map(e => rel(e, e.s)))}</div>`
+    + `<div><h4>${esc(T.out)}</h4>${list(kg.edges.filter(e => e.s === id).map(e => rel(e, e.t)))}</div>`
+    + `<div><h4>${esc(T.refs)}</h4>${list(refs)}</div></div>`;
 }
 
 // 일반 모드 입구: screens.json의 graph_link가 있는 화면에만 (없으면 빈 문자열). 라임 주버튼이 아니라 고스트 링크

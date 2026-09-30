@@ -1,4 +1,4 @@
-@import url("tokens.css?v=dafce545");
+@import url("tokens.css?v=d3913724");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -254,6 +254,25 @@ button:disabled{cursor:default;opacity:.45}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}
 .kg-list{margin:var(--space-4) 0 var(--space-3);padding-left:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);font-size:14px;line-height:1.6}
+/* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
+#stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
+.kg-n:not(.on):hover .kg-s{stroke:var(--text-secondary)}
+.kg-ring{display:none;fill:none;stroke:var(--text-primary);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.kg-n.sel .kg-ring{display:block}
+.kg-n:focus-visible .kg-ring{display:block;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 2}   /* 선택(실선)과 키보드 포커스(점선·라임)를 구분 */
+.kg-l.id{font:400 9px var(--font-mono)}
+.kg-panel{height:176px;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);overflow:hidden}
+.kg-ph{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+.kg-ph b{font-size:15px;white-space:nowrap} .kg-ph code{font:400 12px var(--font-mono);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.kg-pc{flex:1;min-height:0;display:grid;grid-template-columns:.6fr 1.2fr 1.2fr 1.6fr;gap:var(--space-4);font-size:13px}
+.kg-pc > div{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+.kg-pc h4{margin:0 0 var(--space-1);font:400 12px var(--font-ui);color:var(--text-muted)}
+.kg-pc p{margin:0} .kg-pc ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.kg-pc .rel{display:block;font-size:11px;color:var(--text-muted)} .kg-pc .none{color:var(--text-muted)}
+.kg-hint{margin:0;color:var(--text-muted);font-size:13px}
+.idref{min-height:24px;padding:0 var(--space-1);background:none;border:0;color:var(--text-primary);font:400 12px var(--font-mono);text-align:left;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.idref.nb{font:400 13px var(--font-ui)} .idref:hover{color:var(--accent)}
+.logrow.hit{background:var(--bg-input);border-radius:var(--radius-sm)}
 
 /* 완료 화면 전/후 비교 */
 .metric .was{color:var(--text-muted);text-decoration:line-through} .metric .v .arrow{color:var(--text-muted);margin:0 6px}

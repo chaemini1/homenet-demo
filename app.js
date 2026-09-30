@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=dafce545';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgGeneralHTML, kgLinkHTML } from './render.js?v=dafce545';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=d3913724';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML } from './render.js?v=d3913724';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, view: 'home', checkedAt: Date.now() };
+const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, view: 'home', checkedAt: Date.now() };
 const SETTINGS_KEY = 'homenet.settings';
 const scenario = new URLSearchParams(location.search).get('scenario') === 'outside' ? 'outside' : 'wifi';
 // 데모 빌드의 예시 링크(build-static.py가 넣음): 지금 보고 있는 예시를 표시. 서버 모드엔 이 링크가 없다
@@ -203,8 +203,35 @@ export async function showSettings() {
 // 전문가 콘솔(WE1): 설정 "전문가 모드 켜기"나 상단 칩으로 들어오고, 상단 토글이나 "일반 화면으로 보기"로 나간다.
 // 진단 중에 들어오면 그 세션의 추론을 보여주고, 나갈 때 진단 화면으로 되돌아간다 (세션은 건드리지 않는다).
 // KG 카드는 경로(path)가 있을 때만 (빈 상태엔 없음). /kg 실패는 카드 자리에만 알리고 콘솔 나머지는 그대로 그린다
-const kgCard = () => state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했어요: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path);
-const paintExpert = () => { $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar); paint({ rail: expertRailHTML(state.expert.log), stage: expertStageHTML(state.expert, state.expert.path ? kgCard() : '') }, 'expert'); };
+const kgCard = () => state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했어요: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries });
+const kgKnown = () => state.kg && !state.kgErr && state.expert.path ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
+const paintExpert = () => {
+  $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar);
+  paint({ rail: expertRailHTML(state.expert.log, kgKnown()), stage: expertStageHTML(state.expert, state.expert.path ? kgCard() : '') }, 'expert');
+  state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? null; markKgLog(); applyKgLabels();
+};
+// 노드 선택은 제자리 갱신만: 노드 클래스·aria·tabindex, 패널, 해당 로그 줄 강조. 무대 전체를 다시 그리지 않는다 (스크롤·포커스 유지)
+const markKgLog = () => document.querySelectorAll('#rail .logrow').forEach(r => r.classList.toggle('hit', !!state.kgSel && !!r.querySelector(`[data-kg="${state.kgSel}"]`)));
+function selectKg(id, { focus = false, reveal = false } = {}) {
+  const svg = $('#stage .kg-svg'), n = svg?.querySelector(`.kg-n[data-kg="${id}"]`); if (!n) return;
+  svg.querySelectorAll('.kg-n.sel').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-selected', 'false'); o.tabIndex = -1; });
+  n.classList.add('sel'); n.setAttribute('aria-selected', 'true'); n.tabIndex = 0;
+  state.kgSel = id; markKgLog();
+  $('#kg-panel').innerHTML = kgPanelHTML(state.kg, id, state.expert.path, state.expert.log.entries);
+  if (focus) n.focus({ preventScroll: true });
+  if (reveal) $('#stage .kg').scrollIntoView({ block: 'nearest' });
+}
+// 설정 "지식그래프 노드 ID 표시": 라벨 자리에 종류 접두어를 뺀 id(mono)를. kg_build가 좌표를 한글 라벨 폭 기준으로 겹침 0이 되게 잡았으므로,
+// id가 그 폭보다 길면 그 폭으로 눌러 준다(textLength) → 켜도 겹침이 늘지 않는다. 전체 id는 패널·툴팁에.
+function applyKgLabels() {
+  let on = false; try { on = !!JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')['kg-id']; } catch { /* 저장값 없음 → 꺼짐 */ }
+  if (!on) return;
+  document.querySelectorAll('#stage .kg-svg .kg-l').forEach(t => {
+    const w = t.getBBox().width; if (!(w > 0)) return;                       // 숨겨진 상태면 잴 수 없다 → 그대로
+    t.textContent = t.closest('.kg-n').dataset.kg.replace(/^[a-z]+_/, ''); t.classList.add('id');
+    if (t.getBBox().width > w) { t.setAttribute('textLength', w); t.setAttribute('lengthAdjust', 'spacingAndGlyphs'); }
+  });
+}
 // KG 전체는 세션과 무관해서 한 번만 받는다 (실패하면 다음에 다시)
 const loadKg = async () => (state.kg ??= await getKg());
 export async function showExpert() {
@@ -282,6 +309,14 @@ async function finish(then = 'home') {
 }
 
 // Esc: 기록·설정·전문가 콘솔에서 홈으로. 진단 중(home 뷰)에는 아무 일도 하지 않는다.
+// KG 그래프 키보드: ←↑ 이전 · →↓ 다음 · Home/End 처음/끝(옮기며 선택) · Enter/Space 선택. 순서는 그림 순서(경로 노드 → 종류 → id). Esc는 아래 전역 동작 그대로
+document.addEventListener('keydown', e => {
+  const n = e.target.closest?.('.kg-n'); if (!n || e.altKey || e.ctrlKey || e.metaKey) return;
+  const all = [...n.parentElement.querySelectorAll('.kg-n')], i = all.indexOf(n);
+  const to = { ArrowLeft: i - 1, ArrowUp: i - 1, ArrowRight: i + 1, ArrowDown: i + 1, Home: 0, End: all.length - 1, Enter: i, ' ': i }[e.key];
+  if (to === undefined) return;
+  e.preventDefault(); selectKg(all[Math.max(0, Math.min(all.length - 1, to))].dataset.kg, { focus: true });
+});
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || state.view === 'home' || $('#sheet').open) return;   // 시트가 열려 있으면 Esc는 시트만 닫는다
   route('back');
@@ -289,7 +324,8 @@ document.addEventListener('keydown', e => {
 
 // 이벤트 위임: 화면 코드는 data-event만 붙인다. "어디로 갈지"는 서버가 정한다.
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-event],[data-answer],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-event],[data-answer],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg]'); if (!el || el.disabled) return;
+  if (el.dataset.kg) return void selectKg(el.dataset.kg, { focus: true, reveal: !el.closest('#stage') });   // 로그(왼쪽)의 id를 눌렀으면 카드를 화면에 보이게
   if (el.dataset.nav) return void route(el.dataset.nav);
   if (el.dataset.expertOff !== undefined) return void expertOff();
   // 기록 아코디언: 같은 행을 다시 누르면 접기
