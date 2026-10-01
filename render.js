@@ -156,13 +156,13 @@ const KG_ICON = {                                                            // 
 const kgIcon = (shape, x, y, k = 1) => `<path class="kg-ic" transform="translate(${r1(x)} ${r1(y)}) scale(${k})" d="${KG_ICON[shape] ?? KG_ICON.square}"/>`;
 // 칩(이름이 안에): 실루엣 + 왼쪽 아이콘 + 이름(최대 두 줄) + 오른쪽 상태 글리프. 실루엣의 기울어진·둥근 끝을 피해 안쪽 여백을 두고,
 // 글자 자리(아이콘 오른쪽 ~ 글리프 왼쪽)에 들어가는 글자 수만큼만 줄바꿈한다(넘치면 …). inner는 aria-hidden 묶음에 넣는다
-function kgChip(shape, w, h, text, glyph, big = false) {
+function kgChip(shape, w, h, text, glyph, big = false, icon = shape) {   // icon: 아이콘은 종류대로, 실루엣(shape)만 바꿀 때
   const c = Math.min(h * .3, 14), slant = shape === 'diamond' || shape === 'hexagon' ? c * .8 : 0, cap = shape === 'circle' ? h / 4 : 0;
   const padL = 12 + slant + cap, padR = 12 + slant + cap + (shape === 'triangle' ? c * .8 : 0);
   const ix = -w / 2 + padL, tx = ix + 24, lh = big ? 16.5 : 15;
   const lines = kgLines(text, Math.max(4, Math.floor((w / 2 - padR - 10 - tx) / (big ? 15 : 14.2)))), y0 = -(lines.length - 1) * lh / 2;
   return { s: `<path class="kg-s" d="${kgSil(shape, w, h)}"/>`,
-    inner: kgIcon(shape, ix, -8) + `<text class="kg-t${big ? ' big' : ''}" x="${r1(tx)}" y="${r1(y0)}">${lines.map((l, i) => `<tspan x="${r1(tx)}" dy="${i ? lh : 0}">${esc(l)}</tspan>`).join('')}</text>`
+    inner: kgIcon(icon, ix, -8) + `<text class="kg-t${big ? ' big' : ''}" x="${r1(tx)}" y="${r1(y0)}">${lines.map((l, i) => `<tspan x="${r1(tx)}" dy="${i ? lh : 0}">${esc(l)}</tspan>`).join('')}</text>`
       + (glyph ? `<text class="kg-gl" x="${r1(w / 2 - padR)}">${glyph}</text>` : '') };
 }
 // 전문가 타일: 원인 허브는 크고, 주변 노드는 작다. 종류 아이콘·이름은 사각 타일 안에, 상태는 모서리에.
@@ -294,7 +294,7 @@ function kgLines(s, w = 11) {
 // 그림 번호 = 아래 <ol> 번호 (그림은 role=img, 같은 내용을 글로). 채택 원인은 크게 + 그 칸 배경을 살짝 밝게.
 // 선: 이웃한 두 칸 사이에서 KG에 실제 관계가 있는 것끼리만(없는 노드는 가장 가까운 줄과) 부드러운 곡선으로 — 전부 잇던 옛 방식은 X자로 엉켰다. 칸 안 순서는 이어진 앞 칸 순서를 따라 선이 안 꼬이게.
 export function kgGeneralHTML(kg, path = []) {
-  const { meta } = kg, T = meta.text, CW = 250, ROW = 112, TOP = 84;
+  const { meta } = kg, T = meta.text, CW = 262, ROW = 112, TOP = 84;
   const byId = new Map(kg.nodes.map(n => [n.id, n]));
   const cols = Object.keys(meta.types).filter(k => meta.types[k].plain).sort((a, b) => meta.types[a].rank - meta.types[b].rank);
   const items = path.map(p => ({ n: byId.get(p.id), t: kgTone(p.tone) })).filter(i => i.n?.plain && cols.includes(i.n.type));
@@ -325,7 +325,7 @@ export function kgGeneralHTML(kg, path = []) {
   for (let k = links.length - 1; k >= 0; k--) if (dimmed(links[k][0]) || dimmed(links[k][1])) links.splice(k, 1);
   const drawn = main.flat(), shown = [...drawn, ...outs];                      // 그림엔 이번 결론으로 이어진 노드만, 아니었던 원인은 아래 목록에만
   const maxN = Math.max(1, ...main.map(m => m.length)), bottom = TOP + (maxN - 1) * ROW + 84;
-  const dims = i => adopted(i) ? { w: 236, h: 72 } : { w: 224, h: 60 };
+  const dims = i => adopted(i) ? { w: 248, h: 72 } : { w: 238, h: 60 };
   // 일반 모드는 색을 역할로만 쓴다(상태색이 섞이면 '괜찮은 증거 → 문제 원인'처럼 읽혀 헷갈린다): 채택 원인 = 빨강, 할 일 = 라임, 나머지 = 회색. 상태는 글리프(✕ ✓)와 아래 목록의 글자로
   const lastRank = Math.max(...Object.values(meta.types).map(t => t.rank)), role = i => adopted(i) ? 'bad' : kgType(meta, i.n.type).rank === lastRank ? 'checking' : 'neutral';
   main.forEach((m, c) => m.forEach((i, j) => Object.assign(i, { x: CW / 2 + c * CW, y: TOP + (maxN - 1) * ROW / 2 + (j - (m.length - 1) / 2) * ROW })));
@@ -334,7 +334,7 @@ export function kgGeneralHTML(kg, path = []) {
   const side = i => i.t !== 'out' && i.n.side && T[`side_${i.n.side}`];
   const node = i => {
     const ty = kgType(meta, i.n.type), d = dims(i), big = adopted(i);
-    const chip = kgChip(ty.shape, d.w, d.h, i.n.plain.split('(')[0].trim(), KG_GLYPH[i.t] ?? '', big);
+    const chip = kgChip('circle', d.w, d.h, i.n.plain.split('(')[0].trim(), KG_GLYPH[i.t] ?? '', big, ty.shape);   // 일반 모드는 모두 알약 모양(사용자 결정 10/1): 종류는 칸 제목과 아이콘으로 구분
     return `<g class="kg-n on ${role(i)}${dimmed(i) ? ' dim' : ''}" transform="translate(${r1(i.x)} ${r1(i.y)})">${chip.s}<g aria-hidden="true">${chip.inner}</g>`
       + (big ? kgBadge(d.w, d.h) : '')
       + (side(i) ? `<text class="kg-side" y="${r1(d.h / 2 + 18)}">${esc(side(i))}</text>` : '') + '</g>';
