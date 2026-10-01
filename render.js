@@ -130,33 +130,73 @@ export function expertStageHTML(d, graph = '') {
     + `<div class="detail">${metricListHTML(d.candidates)}${metricListHTML(d.measurements)}</div><div class="spacer"></div>${actionsHTML(d.actions)}`;
 }
 
-// ==== KG 그래프: 전문가 카드(전체 + 이번 진단 경로) · 일반 시트(4칸 작은 그림) ====
-// 도형은 데이터(meta.types[타입].shape·size)가 정한다 → 여기엔 타입 이름이 없다. 모르는 타입은 작은 원(12).
-// 노드는 어둡게 두고 상태는 테두리 색·굵기 + 글리프 + 글자(aria·범례·목록)로 — 색만으로 구분하지 않는다. 색 매핑은 app.css의 --ink.
+// ==== KG 그래프: 전문가 카드(이번 경로 칩 / 전체 타일) · 일반 시트(4칸 칩 그림) ====
+// 모양은 팀장님 예시(Figma Graph Visualization UI Kit · Impact Analysis)를 따른다: 색을 꽉 채운 면 + 검은 글씨·아이콘, 이름은 노드 안에,
+// 영향 없음은 옅은 회색 면, 문제 경로만 상태색 면. 상태는 색만으로 구분하지 않는다: 면 색 + 글리프(✕ ✓ … ?) + 글자(aria·범례·목록).
+// 일반 모드 칩의 실루엣과 종류 아이콘은 meta.types[타입].shape가 정한다. 전문가 타일은 사각형 + 종류별 아이콘·크기다.
+//   circle=알약, square=둥근 사각형, diamond=평행사변형, hexagon=육각형 끝, triangle=화살표 끝. 모르는 도형은 둥근 사각형. 도형마다 아이콘도 하나씩(KG_ICON)
 const r1 = v => Math.round(v * 10) / 10;
-const KG_SHAPE = {
-  circle: w => `<circle class="kg-s" r="${r1(w / 2)}"/>`,
-  square: (w, h) => `<rect class="kg-s" x="${r1(-w / 2)}" y="${r1(-h / 2)}" width="${w}" height="${h}" rx="4"/>`,
-  diamond: (w, h) => `<path class="kg-s" d="M0 ${r1(-h / 2)}L${r1(w / 2)} 0L0 ${r1(h / 2)}L${r1(-w / 2)} 0Z"/>`,
-  hexagon: (w, h) => `<path class="kg-s" d="M${r1(-w / 2)} 0L${r1(-w / 4)} ${r1(-h / 2)}H${r1(w / 4)}L${r1(w / 2)} 0L${r1(w / 4)} ${r1(h / 2)}H${r1(-w / 4)}Z"/>`,
-  triangle: (w, h) => `<path class="kg-s" d="M${r1(-w / 2)} ${r1(-h / 2)}L${r1(w / 2)} 0L${r1(-w / 2)} ${r1(h / 2)}Z"/>`,
+const kgSil = (shape, w, h) => {
+  const x = r1(-w / 2), y = r1(-h / 2), X = r1(w / 2), Y = r1(h / 2), c = r1(Math.min(h * .3, 14)), p = r1(h / 2), q = 4;
+  switch (shape) {
+    case 'circle': return `M${r1(x + p)} ${y}H${r1(X - p)}A${p} ${p} 0 0 1 ${r1(X - p)} ${Y}H${r1(x + p)}A${p} ${p} 0 0 1 ${r1(x + p)} ${y}Z`;
+    case 'diamond': return `M${r1(x + c)} ${y}H${X}L${r1(X - c)} ${Y}H${x}Z`;
+    case 'hexagon': return `M${r1(x + c)} ${y}H${r1(X - c)}L${X} 0L${r1(X - c)} ${Y}H${r1(x + c)}L${x} 0Z`;
+    case 'triangle': return `M${x} ${y}H${r1(X - c)}L${X} 0L${r1(X - c)} ${Y}H${x}Z`;
+    default: return `M${r1(x + q)} ${y}H${r1(X - q)}Q${X} ${y} ${X} ${r1(y + q)}V${r1(Y - q)}Q${X} ${Y} ${r1(X - q)} ${Y}H${r1(x + q)}Q${x} ${Y} ${x} ${r1(Y - q)}V${r1(y + q)}Q${x} ${y} ${r1(x + q)} ${y}Z`;
+  }
+};
+const KG_ICON = {                                                            // 16×16, 선 아이콘(면 색 위 검은 선)
+  circle: 'M8 1.8a6.2 6.2 0 1 0 0 12.4a6.2 6.2 0 1 0 0-12.4M8 4.8v3.8M8 11.1v.1',      // 느낌표 원
+  square: 'M7 2.6a4.4 4.4 0 1 0 0 8.8a4.4 4.4 0 1 0 0-8.8M10.2 10.2L13.6 13.6',       // 돋보기
+  diamond: 'M3 13V8.5M8 13V3M13 13V6.5',                                              // 막대
+  hexagon: 'M9.2 1.6L3.6 9h4.1l-.9 5.4L12.4 7H8.3z',                                    // 번개
+  triangle: 'M2.8 8h9.4M8.4 4l3.8 4-3.8 4',                                           // 화살표
+};
+const kgIcon = (shape, x, y, k = 1) => `<path class="kg-ic" transform="translate(${r1(x)} ${r1(y)}) scale(${k})" d="${KG_ICON[shape] ?? KG_ICON.square}"/>`;
+// 칩(이름이 안에): 실루엣 + 왼쪽 아이콘 + 이름(최대 두 줄) + 오른쪽 상태 글리프. 실루엣의 기울어진·둥근 끝을 피해 안쪽 여백을 두고,
+// 글자 자리(아이콘 오른쪽 ~ 글리프 왼쪽)에 들어가는 글자 수만큼만 줄바꿈한다(넘치면 …). inner는 aria-hidden 묶음에 넣는다
+function kgChip(shape, w, h, text, glyph, big = false) {
+  const c = Math.min(h * .3, 14), slant = shape === 'diamond' || shape === 'hexagon' ? c * .8 : 0, cap = shape === 'circle' ? h / 4 : 0;
+  const padL = 12 + slant + cap, padR = 12 + slant + cap + (shape === 'triangle' ? c * .8 : 0);
+  const ix = -w / 2 + padL, tx = ix + 24, lh = big ? 16.5 : 15;
+  const lines = kgLines(text, Math.max(4, Math.floor((w / 2 - padR - 10 - tx) / (big ? 15 : 14.2)))), y0 = -(lines.length - 1) * lh / 2;
+  return { s: `<path class="kg-s" d="${kgSil(shape, w, h)}"/>`,
+    inner: kgIcon(shape, ix, -8) + `<text class="kg-t${big ? ' big' : ''}" x="${r1(tx)}" y="${r1(y0)}">${lines.map((l, i) => `<tspan x="${r1(tx)}" dy="${i ? lh : 0}">${esc(l)}</tspan>`).join('')}</text>`
+      + (glyph ? `<text class="kg-gl" x="${r1(w / 2 - padR)}">${glyph}</text>` : '') };
+}
+// 전문가 타일: 원인 허브는 크고, 주변 노드는 작다. 종류 아이콘·이름은 사각 타일 안에, 상태는 모서리에.
+function kgTile(ty, w, h, glyph) {
+  const k = w >= 60 ? 1.1 : .65;
+  return { s: `<path class="kg-s" d="${kgSil('square', w, h)}"/>`,
+    inner: kgIcon(ty.shape, -8 * k, -8 * k - h * .13, k) + `<text class="kg-kind${w >= 60 ? ' big' : ''}" y="${r1(h * .28)}">${esc(ty.ko)}</text>`
+      + (glyph ? `<text class="kg-gl sm" x="${r1(w / 2 + 4)}" y="${r1(h / 2 - 2)}">${glyph}</text>` : '') };
+}
+// 곡선(순차 배치): 왼쪽 → 오른쪽으로 수평으로 나가 수평으로 들어가는 S자. 같은 칸이면 세로 직선. ahw·bhw = 반폭, gap = 화살촉 자리
+const kgCurve = (a, ahw, ahh, b, bhw, bhh, gap = 8) => {
+  if (Math.abs(b.x - a.x) < 1) { const d = b.y >= a.y ? 1 : -1; return `M${a.x} ${r1(a.y + d * ahh)}L${b.x} ${r1(b.y - d * (bhh + gap))}`; }
+  const d = b.x > a.x ? 1 : -1, x1 = a.x + d * ahw, x2 = b.x - d * (bhw + gap), mx = (x1 + x2) / 2;
+  return `M${r1(x1)} ${r1(a.y)}C${r1(mx)} ${r1(a.y)} ${r1(mx)} ${r1(b.y)} ${r1(x2)} ${r1(b.y)}`;
+};
+// 직선(유기적 배치): 두 사각형의 경계 사이. gap = 화살촉 자리
+const kgLine = (a, ahw, ahh, b, bhw, bhh, gap = 8) => {
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, big = 1e9;
+  const ta = Math.min(ahw / (Math.abs(ux) || 1 / big), ahh / (Math.abs(uy) || 1 / big)) + 2, tb = Math.min(bhw / (Math.abs(ux) || 1 / big), bhh / (Math.abs(uy) || 1 / big)) + gap;
+  return `M${r1(a.x + ux * ta)} ${r1(a.y + uy * ta)}L${r1(b.x - ux * tb)} ${r1(b.y - uy * tb)}`;
 };
 const kgType = (meta, t) => Object.hasOwn(meta.types, t) ? meta.types[t] : { shape: null, size: [12, 12], ko: t };
-const kgSize = (ty, s = 1) => ty.size.map(v => r1(v * s));
-const kgShape = (ty, s = 1) => (Object.hasOwn(KG_SHAPE, ty.shape) ? KG_SHAPE[ty.shape] : KG_SHAPE.circle)(...kgSize(ty, s));
-const kgGlyphX = (ty, w) => ty.shape === 'triangle' ? r1(-w / 6) : 0;       // ▶는 무게중심에 글자를 둔다
 const KG_GLYPH = { ...GLYPH, out: '–' };                                     // neutral(해 볼 일)은 글리프 없음
 const kgTone = t => t === 'out' ? 'out' : tone(t);                           // out = 기각된 가설 (Tone 밖의 값 하나)
 const kgMarkers = (prefix, keys) => `<defs>${keys.map(k => `<marker id="${prefix}-a-${k}" viewBox="0 0 8 8" refX="5" refY="4" markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto"><path class="kg-ah ${k}" d="M0 0L8 4L0 8Z"/></marker>`).join('')}</defs>`;
-const kgBadge = (w, h, r = 7) => `<g class="kg-badge" transform="translate(${r1(w * .375)} ${r1(-h * .375)})"><circle r="${r}"/><text>!</text></g>`;
-const kgMini = (ty, cls = 'kg-n') => { const [w, h] = kgSize(ty); return `<svg class="kg-mini" viewBox="${-w / 2 - 2} ${-h / 2 - 2} ${w + 4} ${h + 4}" width="${r1((w + 4) * .6)}" height="${r1((h + 4) * .6)}" aria-hidden="true"><g class="${cls}">${kgShape(ty)}</g></svg>`; };
+// 배지: 흰 원 + 검은 경고 삼각형(예시와 같은 모양). 채택 원인의 오른쪽 위 모서리에 걸친다
+const kgBadgeInner = r => `<circle r="${r}"/><path class="tri" d="M0 ${r1(-r * .52)}L${r1(r * .56)} ${r1(r * .44)}H${r1(-r * .56)}Z"/><path class="ex" d="M0 ${r1(-r * .18)}v${r1(r * .3)}M0 ${r1(r * .28)}v.1"/>`;
+const kgBadge = (w, h, r = 10) => `<g class="kg-badge" transform="translate(${r1(w / 2 - 4)} ${r1(-h / 2 + 4)})">${kgBadgeInner(r)}</g>`;
+const kgMini = ty => `<svg class="kg-mini" viewBox="-14 -12 28 24" width="28" height="24" aria-hidden="true"><g class="kg-n on neutral"><path class="kg-s" d="${kgSil('square', 26, 22)}"/>${kgIcon(ty.shape, -6, -6, .75)}</g></svg>`;
 
-// 전문가: KG 전체(회색) + 이번 진단 경로(path의 tone)만 색·굵은 선·글리프. 좌표는 kg.json에 이미 있다(브라우저 계산 0).
+
+// 전문가: kg.json의 힘 기반 네트워크 배치를 그대로 쓴다. 보기·진단·선택이 바뀌어도 노드 위치는 같다.
 // 좌표가 없거나 KG에 없는 경로 id는 그리지 않고 아래 foot에 적는다. 출처 미확인이면 pill·SVG 안 도장·notice.
-// o.view: 'focus' = 이번 경로 노드만 채택 원인을 가운데 두고 다시 배치(kg.json 좌표 안 씀): 점검 → 증상·증거 → [원인] → 조치, 기각된 가설은 원인 아래. 선은 전부 직선.
-//   채택 원인이 없으면 종류별 열로. / 'all' = 전체 43개. 채택 원인이 있으면 그 원인을 가운데 두고 연결 거리(1칸, 2칸…)별 동심 타원에 놓고(이번 경로 노드는 한 부채꼴에 모음),
-//   없으면 kg.json 좌표 그대로.
-// 기본은 'all'(순수 함수의 옛 동작), 앱은 focus로 부른다. 전체 보기에서 경로 밖 노드의 라벨은 CSS가 숨기고(hover·선택·포커스 때만 보임) 글자 잡음을 줄인다
+// o.view: 기본 'all' = 전체 네트워크, 'focus' = 전체를 유지하며 경로 밖을 흐리게. 경로 밖 이름은 hover·선택·포커스 때 표시.
 // 노드는 listbox의 option: 선택은 하나(aria-selected), Tab 정지점도 선택 노드 하나(로빙 tabindex). o.sel = 이전 선택, o.log = 패널의 '근거·로그'용 로그 줄
 export function kgGraphHTML(kg, path = [], o = {}) {
   const { meta } = kg, T = meta.text, [W, H] = meta.view, unverified = meta.provenance !== 'team';
@@ -166,115 +206,49 @@ export function kgGraphHTML(kg, path = [], o = {}) {
   const lit = id => tones.has(id) && tones.get(id) !== 'out';
   const rank = n => kgType(meta, n.type).rank ?? 99;
   const all = [...at.values()].sort((a, b) => tones.has(b.id) - tones.has(a.id) || rank(a) - rank(b) || a.id.localeCompare(b.id));   // 읽는 순서: 경로 → 타입 → id
-  // 자리(pos): 전체 = kg.json 좌표. 이번 경로 = 채택 원인(hub)을 가운데 크게, 왼쪽에 hub로 들어오는 증상·증거, 그 왼쪽에 그 증거를 만든 점검, 오른쪽에 조치, 기각된 것은 hub 아래.
-  // hub가 없으면(질문 화면 등) 경로 노드를 종류(rank)마다 한 열로. 어느 쪽이든 열 안은 경로 순서, 선은 직선(교차를 줄이려 점검은 이웃 증거의 높이에 맞춰 정렬)
-  const focus = o.view === 'focus' && tones.size > 0, ROW = 100, TOP = 62, ids = [...tones.keys()];
-  const hubN = tones.size > 0 && (ids.map(id => at.get(id)).find(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ?? ids.map(id => at.get(id)).find(n => kgType(meta, n.type).badge && tones.get(n.id) !== 'out'));
-  const radial = !focus && !!hubN;                                                   // 전체 보기 + 채택 원인 있음 → 동심원
-  const sc = id => focus ? (id === hubN?.id ? 1.7 : 1.35) : radial ? (id === hubN.id ? 1.7 : tones.has(id) ? 1.25 : .85) : 1;
-  let pos = new Map(all.map(n => [n.id, { x: n.x, y: n.y }])), VH = H, heads = '';
-  const dim = new Set();      // hub 아래로 내린 다른 후보 원인: 그 노드에 닿는 선은 경로 색을 쓰지 않고 옅게(진짜 경로 선과 겹쳐 엉키지 않게)
-  if (focus) {
-    const ko = list => [...new Set(list.map(id => kgType(meta, at.get(id).type)).sort((a, b) => a.rank - b.rank).map(t => t.ko))].join(' · ');
-    const head = (x, list) => list.length ? `<text class="kg-col" x="${x}" y="26" aria-hidden="true">${esc(ko(list))}</text>` : '';
-    pos = new Map();
-    if (hubN) {
-      const into = new Set(kg.edges.filter(e => e.t === hubN.id && tones.has(e.s)).map(e => e.s)), from = new Set(kg.edges.filter(e => e.s === hubN.id && tones.has(e.t)).map(e => e.t));
-      // 기각됐거나 아직 후보인 다른 원인은 hub 아래 한 줄로 (점검 열에 섞이면 선이 엉킨다)
-      const outs = ids.filter(id => id !== hubN.id && (tones.get(id) === 'out' || kgType(meta, at.get(id).type).badge));
-      const left = ids.filter(id => into.has(id) && !outs.includes(id)), right = ids.filter(id => from.has(id) && !into.has(id) && !outs.includes(id));
-      const far = ids.filter(id => id !== hubN.id && !left.includes(id) && !right.includes(id) && !outs.includes(id));
-      const bary = id => { const ys = kg.edges.filter(e => (e.s === id && left.includes(e.t)) || (e.t === id && left.includes(e.s))).map(e => left.indexOf(e.s === id ? e.t : e.s)); return ys.length ? ys.reduce((a, b) => a + b) / ys.length : 99; };
-      far.sort((a, b) => bary(a) - bary(b));
-      const rows = Math.max(far.length, left.length, right.length, 1), MID = TOP + (rows - 1) / 2 * ROW, X = { far: 110, left: 300, hub: 490, right: 690 };
-      const put = (list, x) => list.forEach((id, i) => pos.set(id, { x, y: r1(MID + (i - (list.length - 1) / 2) * ROW) }));
-      outs.forEach(id => dim.add(id));
-      put(far, X.far); put(left, X.left); put(right, X.right); pos.set(hubN.id, { x: X.hub, y: r1(MID) });
-      outs.forEach((id, i) => pos.set(id, { x: r1(X.hub + (i - (outs.length - 1) / 2) * 190), y: r1(MID + ROW * 1.35) }));
-      VH = Math.round(Math.max(TOP + (rows - 1) * ROW + 84, outs.length ? MID + ROW * 1.35 + 84 : 0));
-      heads = head(X.far, far) + head(X.left, left) + head(X.hub, [hubN.id]) + head(X.right, right);
-    } else {
-      const cols = new Map();
-      for (const id of ids) (cols.get(rank(at.get(id))) ?? cols.set(rank(at.get(id)), []).get(rank(at.get(id)))).push(id);
-      const ranks = [...cols.keys()].sort((a, b) => a - b), CW = W / ranks.length;
-      ranks.forEach((r, ci) => cols.get(r).sort((a, b) => (tones.get(a) === 'out') - (tones.get(b) === 'out')).forEach((id, ri) => pos.set(id, { x: r1(CW * (ci + .5)), y: TOP + ri * ROW })));
-      VH = TOP + (Math.max(...[...cols.values()].map(c => c.length)) - 1) * ROW + 84;
-      heads = ranks.map((r, ci) => head(r1(CW * (ci + .5)), cols.get(r))).join('');
-    }
-  }
-  if (radial) {
-    // 연결 거리(BFS)별 동심 타원. 1칸 원은 이번 경로 노드를 먼저(한 부채꼴), 바깥 원은 부모 각도 순서로 놓아 선이 덜 꼬인다. 전부 정렬·고정값이라 매번 같은 그림
-    const nb = new Map();
-    for (const e of kg.edges) if (at.has(e.s) && at.has(e.t)) { (nb.get(e.s) ?? nb.set(e.s, []).get(e.s)).push(e.t); (nb.get(e.t) ?? nb.set(e.t, []).get(e.t)).push(e.s); }
-    const dist = new Map([[hubN.id, 0]]), queue = [hubN.id];
-    for (let i = 0; i < queue.length; i++) for (const m of [...(nb.get(queue[i]) ?? [])].sort()) if (!dist.has(m)) { dist.set(m, dist.get(queue[i]) + 1); queue.push(m); }
-    const reach = Math.max(...dist.values());
-    for (const n of all) if (!dist.has(n.id)) dist.set(n.id, reach + 1);                    // 이어지지 않은 노드는 맨 바깥 원
-    const HH = Math.round(H * 1.2); VH = HH;                                             // 노드가 많은 경로에서 겹치지 않게 그림을 20% 키운다
-    const D = Math.max(...dist.values()), step = Math.min(78, (HH / 2 - 30 - 112) / Math.max(D - 1, 1)), ang = new Map();
-    pos = new Map([[hubN.id, { x: W / 2, y: HH / 2 }]]);
-    for (let k = 1; k <= D; k++) {
-      const parentAng = id => { const a = (nb.get(id) ?? []).filter(m => dist.get(m) === k - 1 && ang.has(m)).map(m => ang.get(m)); return a.length ? Math.atan2(a.reduce((s, v) => s + Math.sin(v), 0), a.reduce((s, v) => s + Math.cos(v), 0)) : 0; };
-      const ring = all.filter(n => dist.get(n.id) === k).sort(k === 1
-        ? (a, b) => tones.has(b.id) - tones.has(a.id) || rank(a) - rank(b) || a.id.localeCompare(b.id)
-        : (a, b) => parentAng(a.id) - parentAng(b.id) || a.id.localeCompare(b.id));
-      const r = 112 + (k - 1) * step, a0 = k === 1 ? -Math.PI / 2 : parentAng(ring[0].id);
-      ring.forEach((n, i) => { const a = a0 + 2 * Math.PI * i / ring.length; ang.set(n.id, a); pos.set(n.id, { x: r1(W / 2 + r * 1.55 * Math.cos(a)), y: r1(HH / 2 + r * Math.sin(a)) }); });
-    }
-    // 겹침 풀기: 경로 노드는 아래 라벨 자리까지 넉넉히, 회색 노드는 도형만. 겹치면 겹침이 작은 축으로 반씩 밀고(가운데 원인은 안 움직임), 캔버스 안에 가둔다. 240번 고정 반복
-    const need = id => tones.has(id) ? [140, 80] : [40, 40], mv = [...pos.keys()].sort();
-    for (let it = 0; it < 240; it++) {
-      for (let i = 0; i < mv.length; i++) for (let j = i + 1; j < mv.length; j++) {
-        const a = pos.get(mv[i]), b = pos.get(mv[j]), w = (need(mv[i])[0] + need(mv[j])[0]) / 2, h = (need(mv[i])[1] + need(mv[j])[1]) / 2;
-        const dx = b.x - a.x || (i % 2 ? .1 : -.1), dy = b.y - a.y || .1, ox = w - Math.abs(dx), oy = h - Math.abs(dy);
-        if (ox <= 0 || oy <= 0) continue;
-        const ka = mv[i] === hubN.id ? 0 : mv[j] === hubN.id ? 1 : .5, kb = 1 - ka;
-        if (ox < oy) { const s = Math.sign(dx) * ox; a.x -= s * ka; b.x += s * kb; } else { const s = Math.sign(dy) * oy; a.y -= s * ka; b.y += s * kb; }
-      }
-      for (const id of mv) { const p = pos.get(id); p.x = Math.min(Math.max(p.x, 46), W - 46); p.y = Math.min(Math.max(p.y, 30), HH - 46); }
-    }
-    for (const p of pos.values()) { p.x = r1(p.x); p.y = r1(p.y); }
-  }
-  const nodes = all.filter(n => pos.has(n.id)), order = new Map(nodes.map((n, i) => [n.id, i])), rad = id => Math.max(...kgSize(kgType(meta, at.get(id).type), sc(id))) / 2;
-  const custom = focus || radial;                                                    // 자리를 새로 잡았으면 선도 새로(kg.json의 e.d는 옛 좌표)
-  const edges = kg.edges.filter(e => pos.has(e.s) && pos.has(e.t) && (custom || (e.d?.length === 4 && e.d.every(Number.isFinite)))).map(e => {
-    const on = lit(e.s) && lit(e.t) && !dim.has(e.s) && !dim.has(e.t), k = on ? tones.get(e.t) : 'ctx';          // 양 끝이 다 경로면 굵게, 도착 노드 색
+  const focus = o.view === 'focus' && tones.size > 0;
+  const pos = new Map(all.map(n => [n.id, { x: n.x, y: n.y }]));
+  const dims = id => { const [w, h] = kgType(meta, at.get(id).type).size; return { w, h }; };
+  const nodes = all, order = new Map(nodes.map((n, i) => [n.id, i]));
+  const edges = kg.edges.filter(e => pos.has(e.s) && pos.has(e.t)).map(e => {
+    const on = lit(e.s) && lit(e.t), k = on ? tones.get(e.t) : 'ctx';          // 양 끝이 다 경로면 굵게, 도착 노드 색
     const cls = `kg-e${on ? ` on ${k}` : ''}${e.prop ? ' prop' : ''}`, mk = `marker-end="url(#kgx-a-${k})"`;
-    if (!custom) return { on, html: `<line class="${cls}" x1="${e.d[0]}" y1="${e.d[1]}" x2="${e.d[2]}" y2="${e.d[3]}" ${mk}/>` };
-    const a = pos.get(e.s), b = pos.get(e.t), L = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, ra = rad(e.s) + 2, rb = rad(e.t) + 7;   // +7: 화살촉 자리
-    return { on, html: `<path class="${cls}" d="M${r1(a.x + ux * ra)} ${r1(a.y + uy * ra)}L${r1(b.x - ux * rb)} ${r1(b.y - uy * rb)}" ${mk}/>` };
+    const a = pos.get(e.s), b = pos.get(e.t), da = dims(e.s), db = dims(e.t);
+    const d = kgLine(a, da.w / 2, da.h / 2, b, db.w / 2, db.h / 2);
+    return { on, html: `<path class="${cls}" d="${d}" ${mk}/>` };
   });
   // 기본 선택: 이전 선택 → 채택 원인 → 첫 경로 노드 → 첫 노드 (항상 하나, 지금 그려진 노드 중에서)
   const selId = pos.has(o.sel) ? o.sel : (nodes.find(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ?? nodes[0])?.id;
   const node = n => {
-    const ty = kgType(meta, n.type), [w, h] = kgSize(ty, sc(n.id)), t = tones.get(n.id), adopted = ty.badge && t === 'bad', sel = n.id === selId, ps = pos.get(n.id);
+    const ty = kgType(meta, n.type), t = tones.get(n.id), adopted = ty.badge && t === 'bad', sel = n.id === selId, ps = pos.get(n.id), d = dims(n.id);
     const aria = [`${ty.ko}: ${n.name}`, t && meta.states[t], adopted && T.adopted, n.proposed && T.proposed].filter(Boolean).join(', ');
-    const glyph = t && KG_GLYPH[t] ? `<text class="kg-gl" x="${kgGlyphX(ty, w)}">${KG_GLYPH[t]}</text>` : '';
+    const glyph = t && KG_GLYPH[t] ? KG_GLYPH[t] : '';
+    const body = kgTile(ty, d.w, d.h, glyph);
     // 기각(out) 라벨은 두 번: 선을 가리는 배경색 테두리는 장식 없는 뒤 글자(kg-halo)에만 — 취소선에 테두리가 붙으면 글자 가운데를 지운다
-    // 이번 경로 보기는 잘리지 않은 이름을 두 줄까지 (전체 보기는 kg_build가 겹침 0으로 잡은 짧은 라벨)
-    const lines = focus ? kgLines(n.name) : [n.label ?? n.name];
-    const label = cls => `<text class="kg-l${cls}" y="${h / 2 + 14}">${lines.map((l, i) => `<tspan x="0" dy="${i ? 15 : 0}">${esc(l)}</tspan>`).join('')}</text>`;
-    return `<g class="kg-n${t ? ` on ${t}` : ''}${n.proposed ? ' prop' : ''}${sel ? ' sel' : ''}" transform="translate(${ps.x} ${ps.y})" role="option" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" data-kg="${esc(n.id)}" data-o="${order.get(n.id)}" aria-label="${esc(aria)}"><title>${esc(n.name)} · ${esc(n.id)}</title>${kgShape(ty, sc(n.id))}`
-      + `<g aria-hidden="true"><circle class="kg-ring" r="${r1(Math.max(w, h) / 2 + 7)}"/>${glyph}${adopted ? kgBadge(w, h) : ''}${t === 'out' ? label(' kg-halo') : ''}${label('')}</g></g>`;
+    const tx = cls => `<text class="kg-l${cls}" y="${d.h / 2 + 14}">${esc(n.label ?? n.name)}</text>`;
+    const label = (t === 'out' ? tx(' kg-halo') : '') + tx('');
+    return `<g class="kg-n${t ? ` on ${t}` : ''}${n.proposed ? ' prop' : ''}${sel ? ' sel' : ''}" transform="translate(${ps.x} ${ps.y})" role="option" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" data-kg="${esc(n.id)}" data-o="${order.get(n.id)}" aria-label="${esc(aria)}"><title>${esc(n.name)} · ${esc(n.id)}</title>${body.s}`
+      + `<g aria-hidden="true"><path class="kg-ring" d="${kgSil('square', d.w + 10, d.h + 10)}"/>${body.inner}${adopted ? kgBadge(d.w, d.h) : ''}${label}</g></g>`;
   };
-  const svg = `<svg class="kg-svg${focus ? ' focus' : ''}" viewBox="0 0 ${W} ${VH}" role="listbox" aria-labelledby="kg-h"${unverified ? ' aria-describedby="kg-note"' : ''}>`
-    + kgMarkers('kgx', ['ctx', ...Object.keys(TONE)]) + heads
+  const svg = `<svg class="kg-svg${focus ? ' focus' : ''}" viewBox="0 0 ${W} ${H}" role="listbox" aria-labelledby="kg-h"${unverified ? ' aria-describedby="kg-note"' : ''}>`
+    + kgMarkers('kgx', ['ctx', ...Object.keys(TONE)])
     + `<g aria-hidden="true">${edges.filter(e => !e.on).map(e => e.html).join('')}${edges.filter(e => e.on).map(e => e.html).join('')}</g>`
     + [...nodes].sort((a, b) => tones.has(a.id) - tones.has(b.id)).map(node).join('')       // 그리는 순서: 회색 먼저, 이번 경로 노드가 위 (키보드 순서는 data-o)
-    + (unverified ? `<text class="kg-stamp" x="12" y="${VH - 5}" aria-hidden="true">${esc(T.stamp)}</text>` : '') + '</svg>';
-  // 범례: 도형은 전부, 나머지는 지금 그림에 있는 것만 (점선·! 배지·취소선·경로의 상태)
+    + (unverified ? `<text class="kg-stamp" x="12" y="${H - 5}" aria-hidden="true">${esc(T.stamp)}</text>` : '') + '</svg>';
+  // 범례: 도형(실루엣+아이콘)은 전부, 나머지는 지금 그림에 있는 것만 (점선·! 배지·취소선·경로의 상태)
   const used = new Set(tones.values()), drawn = [...at.values()];
   const legend = Object.values(meta.types).sort((a, b) => a.rank - b.rank).map(ty => `<span>${kgMini(ty)}${esc(ty.ko)}</span>`).join('')
     + (drawn.some(n => n.proposed) ? `<span><svg class="kg-mini" width="22" height="10" aria-hidden="true"><line class="kg-e prop" x1="1" y1="5" x2="21" y2="5"/></svg>${esc(T.legend_proposed)}</span>` : '')
-    + (drawn.some(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ? `<span><svg class="kg-mini" viewBox="-8 -8 16 16" width="16" height="16" aria-hidden="true"><g class="kg-badge"><circle r="7"/><text>!</text></g></svg>${esc(T.legend_badge)}</span>` : '')
+    + (drawn.some(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ? `<span><svg class="kg-mini" viewBox="-11 -11 22 22" width="22" height="22" aria-hidden="true"><g class="kg-badge">${kgBadgeInner(9)}</g></svg>${esc(T.legend_badge)}</span>` : '')
     + (used.has('out') ? `<span>${esc(T.legend_out)}</span>` : '')
-    // 상태 견본엔 종류 도형을 안 쓴다(원이면 '증상'으로 읽힘): 경로 선과 같은 색 선 + 글리프. 해 볼 일(neutral)은 선만
-    + Object.keys(meta.states).filter(k => k !== 'out' && used.has(k)).map(k => `<span><svg class="kg-mini" width="28" height="12" aria-hidden="true"><g class="kg-n on ${k}"><line class="kg-e on ${k}" x1="1" y1="6" x2="13" y2="6"/>${KG_GLYPH[k] ? `<text class="kg-gl" x="21" y="6">${KG_GLYPH[k]}</text>` : ''}</g></svg>${esc(meta.states[k])}</span>`).join('');
+    + (T.legend_gray && drawn.some(n => !tones.has(n.id)) ? `<span><svg class="kg-mini" width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><circle class="kg-gray" r="4"/></svg>${esc(T.legend_gray)}</span>` : '')
+    // 상태 견본: 상태색 면(작은 알약) + 글리프. 해 볼 일(neutral)은 글리프 없음
+    + Object.keys(meta.states).filter(k => k !== 'out' && used.has(k)).map(k => `<span><svg class="kg-mini" width="32" height="14" viewBox="0 0 32 14" aria-hidden="true"><g class="kg-n on ${k}"><rect class="kg-s" x="1" y="1" width="30" height="12" rx="6"/>${KG_GLYPH[k] ? `<text class="kg-gl sm" x="16" y="7.5">${KG_GLYPH[k]}</text>` : ''}</g></svg>${esc(meta.states[k])}</span>`).join('');
   const counts = String(T.counts ?? '').replace(/\{(\w+)\}/g, (m, k) => meta.counts?.[k] ?? m);
   const vbtn = (v, text) => `<button type="button" class="seg-opt${(focus ? 'focus' : 'all') === v ? ' on' : ''}" data-kg-view="${v}" aria-pressed="${(focus ? 'focus' : 'all') === v}">${esc(text)}</button>`;
-  const toggle = T.view_focus ? `<div class="kg-view" role="group" aria-label="${esc(T.view_aria)}">${vbtn('focus', T.view_focus)}${vbtn('all', T.view_all)}</div>` : '';
+  const toggle = T.view_focus ? `<div class="kg-view" role="group" aria-label="${esc(T.view_aria)}">${vbtn('all', T.view_all)}${vbtn('focus', T.view_focus)}</div>` : '';
   return `<section class="card kg"><div class="chead"><b id="kg-h">${esc(T.title)}</b>${unverified ? pillHTML({ tone: 'unknown', text: T.badge }) : ''}<div class="spacer"></div>${toggle}<span>${esc(counts)}</span></div>`
-    + `${svg}<div class="kg-legend">${legend}${T.quiet_hint && !focus ? `<span class="kg-quiet">${esc(T.quiet_hint)}</span>` : ''}</div>`
+    + `<div class="kg-scroll">${svg}</div><div class="kg-legend">${legend}${T.quiet_hint ? `<span class="kg-quiet">${esc(T.quiet_hint)}</span>` : ''}</div>`
     + `<div class="kg-panel" id="kg-panel">${kgPanelHTML(kg, selId, path, o.log)}</div>`
     + (unverified ? `<p class="foot" id="kg-note">${esc(T.notice)}</p>` : '')
     + (missing.length ? `<p class="foot">${esc(T.missing)} ${esc(missing.join(', '))}</p>` : '') + '</section>';
@@ -314,19 +288,12 @@ function kgLines(s, w = 11) {
   }
   return out.length > 2 ? [out[0], `${out.slice(1).join(' ').slice(0, w + 3)}…`] : out;
 }
-function kgWrap(s) {
-  const words = s.split('(')[0].trim().split(/\s+/);
-  let a = '';
-  while (words.length && (!a || a.length + 1 + words[0].length <= 10)) a += (a ? ' ' : '') + words.shift();
-  const b = words.join(' ');
-  return b ? [a, b.length > 11 ? `${b.slice(0, 10)}…` : b] : [a];
-}
-// 일반: 겪은 일 → 확인한 것 → 원인 → 할 일 (plain이 있는 타입을 rank 순서로). 같은 도형을 크게, 도형 안엔 상태 글리프, 번호는 왼쪽 위 배지.
+// 일반: 겪은 일 → 확인한 것 → 원인 → 할 일 (plain이 있는 타입을 rank 순서로). 같은 실루엣의 칩(이름이 안에)으로, 번호는 왼쪽 위 흰 배지.
 // 쉬운 말(plain)이 없는 노드는 안 나온다. id·점수·관계명 없음. 칸마다 최대 2개 + 아니었던 원인 줄 최대 2개, 모두 7개까지.
 // 그림 번호 = 아래 <ol> 번호 (그림은 role=img, 같은 내용을 글로). 채택 원인은 크게 + 그 칸 배경을 살짝 밝게.
 // 선: 이웃한 두 칸 사이에서 KG에 실제 관계가 있는 것끼리만(없는 노드는 가장 가까운 줄과) 부드러운 곡선으로 — 전부 잇던 옛 방식은 X자로 엉켰다. 칸 안 순서는 이어진 앞 칸 순서를 따라 선이 안 꼬이게.
 export function kgGeneralHTML(kg, path = []) {
-  const { meta } = kg, T = meta.text, CW = 200, ROW = 154, TOP = 78;
+  const { meta } = kg, T = meta.text, CW = 240, ROW = 112, TOP = 84;
   const byId = new Map(kg.nodes.map(n => [n.id, n]));
   const cols = Object.keys(meta.types).filter(k => meta.types[k].plain).sort((a, b) => meta.types[a].rank - meta.types[b].rank);
   const items = path.map(p => ({ n: byId.get(p.id), t: kgTone(p.tone) })).filter(i => i.n?.plain && cols.includes(i.n.type));
@@ -353,28 +320,24 @@ export function kgGeneralHTML(kg, path = []) {
     links.push(...pairs);
   });
   const shown = [...main.flat(), ...outs];                                     // 번호 = 그려진 순서(칸 → 위에서 아래) = 아래 목록 순서
-  const maxN = Math.max(1, ...main.map(m => m.length)), bottom = TOP + (maxN - 1) * ROW + 134, outY = bottom + 40;   // 134: 가장 큰 노드(채택 원인) 아래 이름 2줄 + 설명까지
-  const sc = i => adopted(i) ? 2.3 : 1.9, rad = i => Math.max(...kgSize(kgType(meta, i.n.type), sc(i))) / 2;
+  const maxN = Math.max(1, ...main.map(m => m.length)), bottom = TOP + (maxN - 1) * ROW + 84, outY = bottom + 44;
+  const dims = i => adopted(i) ? { w: 220, h: 68 } : { w: 196, h: 56 };
   main.forEach((m, c) => m.forEach((i, j) => Object.assign(i, { x: CW / 2 + c * CW, y: TOP + (maxN - 1) * ROW / 2 + (j - (m.length - 1) / 2) * ROW })));
   outs.forEach((i, j) => Object.assign(i, { x: CW / 2 + (j + 1) * CW, y: outY }));
-  const W = CW * cols.length, H = outs.length ? outY + 92 : bottom;
-  const curve = ([a, b]) => {
-    const x1 = a.x + rad(a) + 3, y1 = a.y, x2 = b.x - rad(b) - 10, y2 = b.y, mx = (x1 + x2) / 2;
-    return `<path class="kg-e on ${b.t}" d="M${r1(x1)} ${r1(y1)}C${r1(mx)} ${r1(y1)} ${r1(mx)} ${r1(y2)} ${r1(x2)} ${r1(y2)}" marker-end="url(#kgg-a-${b.t})"/>`;
-  };
+  const W = CW * cols.length, H = outs.length ? outY + 88 : bottom;
+  const curve = ([a, b]) => { const da = dims(a), db = dims(b); return `<path class="kg-e on ${b.t}" d="${kgCurve(a, da.w / 2, da.h / 2, b, db.w / 2, db.h / 2, 10)}" marker-end="url(#kgg-a-${b.t})"/>`; };
   const side = i => i.t !== 'out' && i.n.side && T[`side_${i.n.side}`];
   const node = i => {
-    const k = shown.indexOf(i), ty = kgType(meta, i.n.type), [w, h] = kgSize(ty, sc(i)), lines = kgWrap(i.n.plain), y0 = r1(h / 2 + 22);
-    const glyph = KG_GLYPH[i.t] ? `<text class="kg-gl" x="${kgGlyphX(ty, w)}">${KG_GLYPH[i.t]}</text>` : '';
-    return `<g class="kg-n on ${i.t}" transform="translate(${r1(i.x)} ${r1(i.y)})">${kgShape(ty, sc(i))}${glyph}`
-      + `<g class="kg-numb" transform="translate(${r1(-w / 2)} ${r1(-h / 2)})"><circle r="11"/><text class="kg-num">${k + 1}</text></g>`
-      + (adopted(i) ? kgBadge(w, h, 10) : '')
-      + `<text class="kg-l" y="${y0}">${lines.map((l, j) => `<tspan x="0" dy="${j ? 19 : 0}">${esc(l)}</tspan>`).join('')}</text>`
-      + (side(i) ? `<text class="kg-side" y="${y0 + lines.length * 19 + 2}">${esc(side(i))}</text>` : '') + '</g>';
+    const k = shown.indexOf(i), ty = kgType(meta, i.n.type), d = dims(i), big = adopted(i);
+    const chip = kgChip(ty.shape, d.w, d.h, i.n.plain.split('(')[0].trim(), KG_GLYPH[i.t] ?? '', big);
+    return `<g class="kg-n on ${i.t}" transform="translate(${r1(i.x)} ${r1(i.y)})">${chip.s}<g aria-hidden="true">${chip.inner}</g>`
+      + `<g class="kg-numb" transform="translate(${r1(-d.w / 2 + 6)} ${r1(-d.h / 2 + 4)})"><circle r="11"/><text class="kg-num">${k + 1}</text></g>`
+      + (big ? kgBadge(d.w, d.h) : '')
+      + (side(i) ? `<text class="kg-side" y="${r1(d.h / 2 + 18)}">${esc(side(i))}</text>` : '') + '</g>';
   };
-  const heads = cols.map((c, k) => `<text class="kg-col" x="${CW / 2 + k * CW}" y="24">${esc(meta.types[c].plain)}</text>`).join('')
+  const heads = cols.map((c, k) => `<text class="kg-col" x="${CW / 2 + k * CW}" y="26">${esc(meta.types[c].plain)}</text>`).join('')
     + (outs.length ? `<text class="kg-col" x="${CW / 2}" y="${outY + 5}">${esc(`${meta.types[outs[0].n.type].plain} · ${meta.states.out ?? ''}`)}</text>` : '');
-  const ci = cols.findIndex(c => meta.types[c].badge), band = ci >= 0 && main[ci].length ? `<rect class="kg-band" x="${ci * CW + 8}" y="38" width="${CW - 16}" height="${(outs.length ? outY - 18 : bottom) - 44}" rx="16"/>` : '';
+  const ci = cols.findIndex(c => meta.types[c].badge), band = ci >= 0 && main[ci].length ? `<rect class="kg-band" x="${ci * CW + 8}" y="40" width="${CW - 16}" height="${(outs.length ? outY - 18 : bottom) - 46}" rx="16"/>` : '';
   // 상태 글자: 타입 쪽(plain_states, 예: 증거가 ok면 "지금은 괜찮아요")을 먼저, 없으면 공통. 괄호 대신 ' · ' (쉬운 말에 괄호가 이미 있어 두 번 겹치지 않게)
   const word = i => meta.types[i.n.type].plain_states?.[i.t] ?? meta.states[i.t];
   const li = i => `<li>${esc(meta.types[i.n.type].plain)} — ${esc(i.n.plain)}${word(i) ? ` · ${esc(word(i))}` : ''}${side(i) ? `. ${esc(side(i))}` : ''}</li>`;

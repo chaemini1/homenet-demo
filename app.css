@@ -1,4 +1,4 @@
-@import url("tokens.css?v=b189bc4a");
+@import url("tokens.css?v=35032746");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -42,6 +42,7 @@ button:disabled{cursor:default;opacity:.45}
 .topbar:has(> #nav-expert:not([hidden])) :is(.pill,.ghost){flex:none;white-space:nowrap}
 /* 일반 상단바도 한 줄: 1280 데모에서 전문가 모드 칩까지 켜지면 약 110px 모자란다 → 글자는 접지 않고 데모 배지만 말줄임(전체 문구는 title) */
 .topbar :is(.pill,.ghost,.tab,.status-pill){flex:none;white-space:nowrap}
+.demo-help{border:1px solid var(--border-strong);cursor:pointer} .demo-help:hover{background:var(--border-strong)}
 .topbar > .pill[role="note"]{display:block;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:1365px){.topbar{gap:var(--space-4)}}   /* 1280: 고객센터 번호가 버튼에 들어가며 준 여유를 되찾는다 — 칩이 꺼진 기본 상태에선 배지도 안 잘리게 */
 #nav-expert .isp{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -226,42 +227,58 @@ button:disabled{cursor:default;opacity:.45}
 .sheet .chead.big{margin-bottom:var(--space-4)}
 .sheet .lic{margin-top:var(--space-3)} .sheet .k small{display:block;color:var(--text-muted);font-size:12px}
 
-/* ---- KG 그래프 (전문가 카드 · 일반 시트): 노드는 어둡게, 상태는 테두리 색·굵기 + 글리프 + 글자. 글로우·그림자·그라데이션·움직임 없음 ---- */
-/* --ink = 상태색 한 곳 매핑 (노드 테두리·글리프, 경로 선, 화살촉) */
+/* ---- KG 그래프 (전문가 카드 · 일반 시트): 상태색 면 + 글리프 + 글자. 글로우·그림자·그라데이션·움직임 없음 ---- */
+/* --ink = 상태색 한 곳 매핑 (노드 면, 경로 선, 화살촉) */
 :is(.kg-n,.kg-e,.kg-ah).ok{--ink:var(--success)} :is(.kg-n,.kg-e,.kg-ah).warn{--ink:var(--warning)} :is(.kg-n,.kg-e,.kg-ah).bad{--ink:var(--critical)}
 :is(.kg-n,.kg-e,.kg-ah).checking{--ink:var(--accent)} :is(.kg-n,.kg-e,.kg-ah).unknown{--ink:var(--text-muted)} :is(.kg-n,.kg-e,.kg-ah).neutral{--ink:var(--text-secondary)}
 :is(.kg-e,.kg-ah).flow{--ink:var(--text-muted)}
 .kg .chead{align-items:center;gap:var(--space-3)}
 .kg-svg{display:block;width:100%;height:auto}
+.kg-scroll{overflow-x:auto} .kg-scroll > .kg-svg{min-width:600px;max-height:760px}
 .kg-e{fill:none;stroke:var(--ink,var(--border-strong));stroke-width:1;vector-effect:non-scaling-stroke} .kg-e.on{stroke-width:2} .kg-e.prop{stroke-dasharray:4 3}
 .kg-ah{fill:var(--ink,var(--border-strong))}
-/* 경로 밖 노드 테두리는 --text-muted(배경 대비 3:1 이상, --border-strong은 약 1.6:1이라 그래픽 대비 기준 미달) */
-.kg-s{fill:var(--bg-input);stroke:var(--text-muted);stroke-width:1;vector-effect:non-scaling-stroke}
-.kg-n.prop .kg-s{stroke-dasharray:4 3}
-.kg-n.on .kg-s{fill:var(--bg-surface);stroke:var(--ink);stroke-width:2}
-.kg-n.out .kg-s{fill:var(--bg-input);stroke:var(--border-strong);stroke-width:1;opacity:.5}
+.kg-scroll :is(.kg-e:not(.on),.kg-ah.ctx){--ink:var(--text-muted)} .kg-scroll .kg-e:not(.on){opacity:.9}
+/* 노드는 예시(Impact Analysis)처럼 색을 꽉 채운 면 + 검은 글씨·아이콘. 경로 밖은 옅은 회색 면, 문제 경로는 상태색 면(--ink). 상태는 면 색만이 아니라 글리프(✕ ✓ … ?)·글자로도 */
+.kg-s{fill:var(--text-muted);fill-opacity:.6;stroke:none}
+.kg-n.prop .kg-s{stroke:var(--bg-base);stroke-width:2;stroke-dasharray:4 3;stroke-opacity:.75}
+.kg-n.on .kg-s{fill:var(--ink);fill-opacity:1}
+.kg-n:not(.on):hover .kg-s{fill-opacity:.85}
+.kg-n.sel .kg-s{stroke:var(--accent);stroke-width:2;stroke-dasharray:none;stroke-opacity:1}
+.kg-n.out .kg-s{fill:var(--bg-input);fill-opacity:.7;stroke:var(--text-muted);stroke-width:1.5;stroke-dasharray:4 3;stroke-opacity:1}
+.kg-ic{fill:none;stroke:var(--bg-base);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kg-n:not(.on) .kg-ic{stroke-opacity:.55} .kg-n.out .kg-ic{stroke:var(--text-muted);stroke-opacity:1}
+.kg-scroll .kg-n:not(.on) .kg-s{fill:var(--text-secondary);fill-opacity:.85}
+.kg-scroll .kg-n:not(.on) .kg-ic{stroke-opacity:1}
+.kg-kind{fill:var(--bg-base);font:500 7px var(--font-ui);text-anchor:middle;dominant-baseline:central}
+.kg-kind.big{font-size:10px;font-weight:600}
+.kg-scroll .kg-n:not(.on) .kg-l:not(.id){visibility:hidden}   /* 이번 경로 노드는 이름을 항상 보여 주고, 나머지는 올리거나 선택할 때만 */
+/* 칩(이름이 안에): 검은 글씨 */
+.kg-t{fill:var(--bg-base);font:600 12px var(--font-ui);dominant-baseline:central;text-anchor:start} .kg-t.big{font-size:13.5px;font-weight:700}
+.kg-n.out .kg-t{fill:var(--text-secondary);font-weight:400;text-decoration:line-through}
 /* 라벨: 선이 지나가도 읽히게 배경색 테두리(paint-order)로 선을 가린다 */
 .kg-l{fill:var(--text-muted);font:400 11px var(--font-ui);text-anchor:middle;paint-order:stroke;stroke:var(--bg-surface);stroke-width:3px;stroke-linejoin:round}
 .kg-n.on .kg-l{fill:var(--text-primary);font-weight:700}
 /* 기각(out): 취소선에 배경색 테두리가 붙으면 글자 가운데를 지운다 → 앞 글자는 테두리 없이, 선 가리는 테두리는 장식 없는 뒤 글자(kg-halo, 전문가 그래프)만 */
 .kg-n.out .kg-l{fill:var(--text-secondary);font-weight:400;text-decoration:line-through;stroke:none}
 .kg-n.out .kg-halo{fill:none;stroke:var(--bg-surface);text-decoration:none}
-.kg-gl,.kg-num{text-anchor:middle;dominant-baseline:central;fill:var(--ink,var(--text-secondary))}
-.kg-gl{font:700 11px var(--font-mono)}
-.kg-n.out :is(.kg-gl,.kg-num){fill:var(--text-secondary)}
-.kg-badge circle{fill:var(--text-primary)} .kg-badge text{fill:var(--bg-base);font:700 11px var(--font-mono);text-anchor:middle;dominant-baseline:central}
+.kg-gl,.kg-num{text-anchor:middle;dominant-baseline:central;fill:var(--bg-base)}
+.kg-gl{font:700 13px var(--font-mono)} .kg-gl.sm{font-size:11px} .kg-gl.sm{font-size:11px}
+.kg-scroll .kg-gl.sm{fill:var(--ink,var(--text-primary));paint-order:stroke;stroke:var(--bg-surface);stroke-width:3px;stroke-linejoin:round}
+.kg-n.out .kg-gl{fill:var(--text-muted)}
+.kg-badge circle{fill:var(--text-primary)} .kg-badge .tri{fill:var(--bg-base)} .kg-badge .ex{fill:none;stroke:var(--text-primary);stroke-width:1.5;stroke-linecap:round}
 .kg-stamp{fill:var(--text-muted);font:400 11px var(--font-mono)}
 .kg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);font-size:13px;color:var(--text-secondary)}
 .kg-legend > span{display:inline-flex;align-items:center;gap:var(--space-2)}
 .kg-mini{flex:none;overflow:visible}
+.kg-gray{fill:var(--text-muted);fill-opacity:.6}
 .kg-legend .kg-e.prop{stroke:var(--text-muted)}   /* 그래프 속 경로 밖 선은 장식이라 흐려도 되지만, 범례 견본은 규칙을 알려 주는 표시라 3:1 이상 */
 /* 일반 시트: 4칸 작은 그림 + 같은 번호의 문장 목록 */
-.sheet.wide{width:min(800px,calc(100vw - 48px))}
+.sheet.wide{width:min(1000px,calc(100vw - 48px))}
 .kg-plain .kg-l{font-size:14.5px}
 /* 일반 시트: 곡선·굵은 선(경로는 도착 노드 상태색), 상태색을 옅게 깐 노드 + 큰 상태 글리프, 번호는 왼쪽 위 배지, 원인 칸은 살짝 밝은 띠 */
-.kg-plain .kg-e{stroke-width:3;opacity:.85} .kg-plain .kg-n.on .kg-s{fill:color-mix(in srgb,var(--ink,var(--text-muted)) 16%,var(--bg-surface));stroke-width:2.5}
-.kg-plain .kg-gl{font-size:19px}
-.kg-numb circle{fill:var(--bg-base);stroke:var(--text-muted);stroke-width:1} .kg-numb .kg-num{font:700 12px var(--font-mono);fill:var(--text-primary)}
+.kg-plain .kg-e{stroke-width:2.6;opacity:.9} .kg-plain .kg-t{font-size:13px} .kg-plain .kg-t.big{font-size:14.5px}
+.kg-plain .kg-gl{font-size:14px}
+.kg-numb circle{fill:var(--text-primary);stroke:none} .kg-numb .kg-num{font:700 12px var(--font-mono);fill:var(--bg-base)}
 .kg-band{fill:var(--bg-input);opacity:.5}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
@@ -270,14 +287,14 @@ button:disabled{cursor:default;opacity:.45}
 /* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
 #stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
 .kg-n:not(.on):hover .kg-s{stroke:var(--text-secondary)}
-.kg-ring{display:none;fill:none;stroke:var(--text-primary);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.kg-ring{display:none;fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}
 .kg-n.sel .kg-ring{display:block}
 .kg-n:focus-visible .kg-ring{display:block;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 2}   /* 선택(실선)과 키보드 포커스(점선·라임)를 구분 */
 /* 이번 경로 밖 노드: 라벨은 숨기고(visibility라 getBBox는 됨) 올리거나 선택·포커스할 때만, 모양·선은 흐리게 */
 .kg-svg:not(.kg-plain) .kg-n:not(.on):not(.sel):not(:hover):not(:focus) .kg-l{visibility:hidden}
-.kg-svg.focus .kg-e:not(.on){opacity:.5}
-.kg-svg.focus .kg-l{font-size:13px} .kg-svg.focus .kg-col{font-size:13px} .kg-svg.focus .kg-l.id{font-size:10px}
-.kg-svg.focus .kg-e{stroke-width:1.5} .kg-svg.focus .kg-e.on{stroke-width:2.5}
+.kg-svg.focus .kg-e:not(.on){opacity:.35}
+.kg-svg.focus .kg-n:not(.on):not(.sel):not(:hover):not(:focus){opacity:.5}
+.kg :is(.pill,.chip,.seg-opt){white-space:nowrap} .kg .chead b,.kg-ph b{white-space:nowrap}
 .kg-view{display:flex;gap:var(--space-1)} .kg-view .seg-opt{height:28px;padding:0 var(--space-3);font-size:12px}
 .kg-quiet{margin-left:auto;font-size:12px;color:var(--text-muted)}
 .kg-l.id{font:400 9px var(--font-mono)}
@@ -297,3 +314,25 @@ button:disabled{cursor:default;opacity:.45}
 /* 완료 화면 전/후 비교 */
 .metric .was{color:var(--text-muted);text-decoration:line-through} .metric .v .arrow{color:var(--text-muted);margin:0 6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* 좁은 화면(휴대폰·작은 창): 정식 모바일 화면은 아직 없다(Figma "Mobile merged v2" 참고). 지금은 내용이 잘리지 않게만 —
+   본문을 먼저 두고 왼쪽 영역(진단 단계·로그)은 그 아래로 쌓고, 넘치는 줄은 안에서 가로 스크롤한다 */
+@media (max-width:900px){
+  .topbar{height:auto;flex-wrap:wrap;gap:var(--space-1) var(--space-3);padding:var(--space-2) var(--space-4)}
+  .topbar :is(.tab,.ghost){height:36px}
+  .topbar .spacer{display:none}
+  .body{flex-direction:column}
+  .stage{order:1;min-width:0;padding:var(--space-5) var(--space-4)}
+  .rail,.rail.collapsed{order:2;width:auto;flex:none;align-items:stretch;padding:var(--space-4);border-right:0;border-top:1px solid var(--border-subtle)}
+  .rail.collapsed .rail-vlabel{writing-mode:horizontal-tb;margin:0;letter-spacing:0}
+  .rail-toggle{top:var(--space-3);right:var(--space-3)} .rail.collapsed .rail-toggle{position:absolute}
+  .headline h1{font-size:26px}
+  .detail{flex-direction:column}
+  .segments{overflow-x:auto}
+  .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0}
+  .kg-pc{grid-template-columns:1fr 1fr} .kg-panel{height:auto;max-height:none} .kg-pc > div{max-height:160px}
+  .sheet,.sheet.wide{width:calc(100vw - 24px);padding:var(--space-4)}
+  .kg .chead{flex-wrap:wrap;row-gap:var(--space-2)} .kg .chead .spacer{display:none} .kg-ph{flex-wrap:wrap} .kg-view{margin-left:auto}   /* 카드 머리·패널 머리는 줄바꿈(글자가 한 글자씩 세로로 쪼개지지 않게) */
+  .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 시트가 좌우로 스크롤된다 */
+  .rec-head .rc{width:auto}
+}

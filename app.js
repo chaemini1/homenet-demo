@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=b189bc4a';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML } from './render.js?v=b189bc4a';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=35032746';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML } from './render.js?v=35032746';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'focus', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: Date.now() };
+const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: Date.now() };
 const SETTINGS_KEY = 'homenet.settings';
 const scenario = new URLSearchParams(location.search).get('scenario') === 'outside' ? 'outside' : 'wifi';
 // 데모 빌드의 예시 링크(build-static.py가 넣음): 지금 보고 있는 예시를 표시. 서버 모드엔 이 링크가 없다
@@ -229,8 +229,6 @@ function repaintKg(focusSel) {
 }
 function selectKg(id, { focus = false, reveal = false } = {}) {
   const svg = $('#stage .kg-svg'), n = svg?.querySelector(`.kg-n[data-kg="${id}"]`);
-  // 이번 경로 보기엔 경로 노드만 있다: 패널의 이웃 버튼이 경로 밖 노드를 가리키면 전체 보기로 바꿔서 그 노드를 보여 준다
-  if (!n && svg && state.kg?.nodes.some(x => x.id === id)) { state.kgView = 'all'; state.kgSel = id; return repaintKg(`#stage .kg-n[data-kg="${id}"]`); }
   if (!n) return;
   svg.querySelectorAll('.kg-n.sel').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-selected', 'false'); o.tabIndex = -1; });
   n.classList.add('sel'); n.setAttribute('aria-selected', 'true'); n.tabIndex = 0;
@@ -239,8 +237,8 @@ function selectKg(id, { focus = false, reveal = false } = {}) {
   if (focus) n.focus({ preventScroll: true });
   if (reveal) $('#stage .kg').scrollIntoView({ block: 'nearest' });
 }
-// 설정 "지식그래프 노드 ID 표시": 라벨 자리에 종류 접두어를 뺀 id(mono)를. kg_build가 좌표를 한글 라벨 폭 기준으로 겹침 0이 되게 잡았으므로,
-// id가 그 폭보다 길면 그 폭으로 눌러 준다(textLength) → 켜도 겹침이 늘지 않는다. 전체 id는 패널·툴팁에.
+// 설정 "지식그래프 노드 ID 표시": 바깥 이름 라벨을 접두어 없는 id(mono)로. 긴 id는 원래 짧은 이름 폭까지만 압축한다.
+// 기본 배치는 내부 종류 라벨 기준이므로 ID 모드의 바깥 글자는 겹칠 수 있다. 전체 id는 패널·툴팁에도 있다.
 function applyKgLabels() {
   let on = false; try { on = !!JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')['kg-id']; } catch { /* 저장값 없음 → 꺼짐 */ }
   if (!on) return;
@@ -428,6 +426,7 @@ export function onEvent(event, el) {
     case 'close_sheet': return $('#sheet').close();
     case 'led_guide': return openSheet('인터넷 표시등은 여기 있어요', ledGuideHTML());
     case 'kg_general': return openKgSheet(el.textContent);
+    case 'demo_help': { const t = document.getElementById('demo-help'); return t && openSheet(t.dataset.title, t.innerHTML); }   // 데모 빌드만(build-static.py가 <template>을 넣는다)
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':
       if (!confirm('진단 기록을 모두 지울까요? 되돌릴 수 없어요.')) return;
