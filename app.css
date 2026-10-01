@@ -1,4 +1,4 @@
-@import url("tokens.css?v=35032746");
+@import url("tokens.css?v=c954232f");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -280,6 +280,7 @@ button:disabled{cursor:default;opacity:.45}
 .kg-plain .kg-gl{font-size:14px}
 .kg-numb circle{fill:var(--text-primary);stroke:none} .kg-numb .kg-num{font:700 12px var(--font-mono);fill:var(--bg-base)}
 .kg-band{fill:var(--bg-input);opacity:.5}
+.kg-plain .kg-n.dim{opacity:.5}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}

@@ -293,7 +293,7 @@ function kgLines(s, w = 11) {
 // 그림 번호 = 아래 <ol> 번호 (그림은 role=img, 같은 내용을 글로). 채택 원인은 크게 + 그 칸 배경을 살짝 밝게.
 // 선: 이웃한 두 칸 사이에서 KG에 실제 관계가 있는 것끼리만(없는 노드는 가장 가까운 줄과) 부드러운 곡선으로 — 전부 잇던 옛 방식은 X자로 엉켰다. 칸 안 순서는 이어진 앞 칸 순서를 따라 선이 안 꼬이게.
 export function kgGeneralHTML(kg, path = []) {
-  const { meta } = kg, T = meta.text, CW = 240, ROW = 112, TOP = 84;
+  const { meta } = kg, T = meta.text, CW = 250, ROW = 112, TOP = 84;
   const byId = new Map(kg.nodes.map(n => [n.id, n]));
   const cols = Object.keys(meta.types).filter(k => meta.types[k].plain).sort((a, b) => meta.types[a].rank - meta.types[b].rank);
   const items = path.map(p => ({ n: byId.get(p.id), t: kgTone(p.tone) })).filter(i => i.n?.plain && cols.includes(i.n.type));
@@ -319,30 +319,33 @@ export function kgGeneralHTML(kg, path = []) {
     m.sort((x, y) => { const bc = i => { const p = pairs.filter(q => q[1] === i).map(q => L.indexOf(q[0])); return p.length ? p.reduce((u, v) => u + v) / p.length : 0; }; return bc(x) - bc(y); });   // 앞 칸 순서를 따라
     links.push(...pairs);
   });
-  const shown = [...main.flat(), ...outs];                                     // 번호 = 그려진 순서(칸 → 위에서 아래) = 아래 목록 순서
-  const maxN = Math.max(1, ...main.map(m => m.length)), bottom = TOP + (maxN - 1) * ROW + 84, outY = bottom + 44;
-  const dims = i => adopted(i) ? { w: 220, h: 68 } : { w: 196, h: 56 };
+  // 결론(채택 원인)이 있으면 같은 칸의 다른 후보 원인은 흐리게 두고 선을 잇지 않는다 — 두 원인에 선이 다 닿으면 어느 쪽이 답인지, 선이 왜 엉켰는지 읽기 어렵다
+  const hasAdopted = main.some(m => m.some(adopted)), dimmed = i => hasAdopted && meta.types[i.n.type].badge && !adopted(i);
+  for (let k = links.length - 1; k >= 0; k--) if (dimmed(links[k][0]) || dimmed(links[k][1])) links.splice(k, 1);
+  const drawn = main.flat(), shown = [...drawn, ...outs];                      // 그림엔 이번 결론으로 이어진 노드만, 아니었던 원인은 아래 목록에만
+  const maxN = Math.max(1, ...main.map(m => m.length)), bottom = TOP + (maxN - 1) * ROW + 84;
+  const dims = i => adopted(i) ? { w: 236, h: 72 } : { w: 224, h: 60 };
+  // 일반 모드는 색을 역할로만 쓴다(상태색이 섞이면 '괜찮은 증거 → 문제 원인'처럼 읽혀 헷갈린다): 채택 원인 = 빨강, 할 일 = 라임, 나머지 = 회색. 상태는 글리프(✕ ✓)와 아래 목록의 글자로
+  const lastRank = Math.max(...Object.values(meta.types).map(t => t.rank)), role = i => adopted(i) ? 'bad' : kgType(meta, i.n.type).rank === lastRank ? 'checking' : 'neutral';
   main.forEach((m, c) => m.forEach((i, j) => Object.assign(i, { x: CW / 2 + c * CW, y: TOP + (maxN - 1) * ROW / 2 + (j - (m.length - 1) / 2) * ROW })));
-  outs.forEach((i, j) => Object.assign(i, { x: CW / 2 + (j + 1) * CW, y: outY }));
-  const W = CW * cols.length, H = outs.length ? outY + 88 : bottom;
-  const curve = ([a, b]) => { const da = dims(a), db = dims(b); return `<path class="kg-e on ${b.t}" d="${kgCurve(a, da.w / 2, da.h / 2, b, db.w / 2, db.h / 2, 10)}" marker-end="url(#kgg-a-${b.t})"/>`; };
+    const W = CW * cols.length, H = bottom;
+  const curve = ([a, b]) => { const da = dims(a), db = dims(b); return `<path class="kg-e on ${role(b)}" d="${kgCurve(a, da.w / 2, da.h / 2, b, db.w / 2, db.h / 2, 10)}" marker-end="url(#kgg-a-${role(b)})"/>`; };
   const side = i => i.t !== 'out' && i.n.side && T[`side_${i.n.side}`];
   const node = i => {
-    const k = shown.indexOf(i), ty = kgType(meta, i.n.type), d = dims(i), big = adopted(i);
+    const ty = kgType(meta, i.n.type), d = dims(i), big = adopted(i);
     const chip = kgChip(ty.shape, d.w, d.h, i.n.plain.split('(')[0].trim(), KG_GLYPH[i.t] ?? '', big);
-    return `<g class="kg-n on ${i.t}" transform="translate(${r1(i.x)} ${r1(i.y)})">${chip.s}<g aria-hidden="true">${chip.inner}</g>`
-      + `<g class="kg-numb" transform="translate(${r1(-d.w / 2 + 6)} ${r1(-d.h / 2 + 4)})"><circle r="11"/><text class="kg-num">${k + 1}</text></g>`
+    return `<g class="kg-n on ${role(i)}${dimmed(i) ? ' dim' : ''}" transform="translate(${r1(i.x)} ${r1(i.y)})">${chip.s}<g aria-hidden="true">${chip.inner}</g>`
       + (big ? kgBadge(d.w, d.h) : '')
       + (side(i) ? `<text class="kg-side" y="${r1(d.h / 2 + 18)}">${esc(side(i))}</text>` : '') + '</g>';
   };
   const heads = cols.map((c, k) => `<text class="kg-col" x="${CW / 2 + k * CW}" y="26">${esc(meta.types[c].plain)}</text>`).join('')
-    + (outs.length ? `<text class="kg-col" x="${CW / 2}" y="${outY + 5}">${esc(`${meta.types[outs[0].n.type].plain} · ${meta.states.out ?? ''}`)}</text>` : '');
-  const ci = cols.findIndex(c => meta.types[c].badge), band = ci >= 0 && main[ci].length ? `<rect class="kg-band" x="${ci * CW + 8}" y="40" width="${CW - 16}" height="${(outs.length ? outY - 18 : bottom) - 46}" rx="16"/>` : '';
+;
+  const ci = cols.findIndex(c => meta.types[c].badge), band = ci >= 0 && main[ci].length ? `<rect class="kg-band" x="${ci * CW + 8}" y="40" width="${CW - 16}" height="${bottom - 46}" rx="16"/>` : '';
   // 상태 글자: 타입 쪽(plain_states, 예: 증거가 ok면 "지금은 괜찮아요")을 먼저, 없으면 공통. 괄호 대신 ' · ' (쉬운 말에 괄호가 이미 있어 두 번 겹치지 않게)
   const word = i => meta.types[i.n.type].plain_states?.[i.t] ?? meta.states[i.t];
   const li = i => `<li>${esc(meta.types[i.n.type].plain)} — ${esc(i.n.plain)}${word(i) ? ` · ${esc(word(i))}` : ''}${side(i) ? `. ${esc(side(i))}` : ''}</li>`;
-  return `<svg class="kg-svg kg-plain" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.plain_aria)}">${kgMarkers('kgg', Object.keys(TONE))}${band}${heads}${links.map(curve).join('')}${shown.map(node).join('')}</svg>`
-    + `<ol class="kg-list">${shown.map(li).join('')}</ol>${foot}`;
+  return `<svg class="kg-svg kg-plain" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.plain_aria)}">${kgMarkers('kgg', Object.keys(TONE))}${band}${heads}${links.map(curve).join('')}${drawn.map(node).join('')}</svg>`
+    + `<ul class="kg-list">${shown.map(li).join('')}</ul>${foot}`;
 }
 
 // ==== 시트(<dialog>): 라이선스 목록, 표시등 위치 그림 ====
