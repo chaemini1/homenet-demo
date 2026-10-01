@@ -1,4 +1,4 @@
-@import url("tokens.css?v=94b73735");
+@import url("tokens.css?v=8d821a92");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -217,6 +217,20 @@ button:disabled{cursor:default;opacity:.45}
 .logrow .lx{flex:1;min-width:0;font:400 13px/1.5 var(--font-mono);color:var(--text-secondary);overflow-wrap:anywhere}
 .seg .cap{font:400 12px/1.5 var(--font-mono);color:var(--text-muted);text-align:center;white-space:nowrap} .seg.bad .cap{color:var(--critical)}
 .seglink{flex:none;height:40px;display:flex;align-items:center;padding:0 var(--space-2);font:700 12px/1 var(--font-mono);color:var(--critical);white-space:nowrap}
+/* 전문가 연결 경로(topologyHTML): 칸 = 글리프 + 이름 + 측정값, 칸 사이 선. 상태는 테두리 색 + 글리프 + 글자(색만으로 구분하지 않음) */
+.tchain{display:flex;align-items:center;width:100%}
+.tnode{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--bg-surface)}
+.tnode.ok{border-color:var(--success)} .tnode.warn{border-color:var(--warning);background:var(--warning-bg)} .tnode.bad{border-color:var(--critical);background:var(--critical-bg)}
+.tnode.checking{border:1px dashed var(--accent);background:var(--accent-bg)} .tnode.unknown{border:1px dashed var(--text-muted)}
+.tn-h{display:flex;align-items:center;gap:var(--space-2);min-width:0;font-size:14px} .tn-h b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tn-g{flex:none;width:16px;text-align:center;font:700 13px/1 var(--font-mono)}
+.tnode.ok .tn-g{color:var(--success)} .tnode.warn .tn-g{color:var(--warning)} .tnode.bad .tn-g{color:var(--critical)} .tnode.checking .tn-g{color:var(--accent)}
+.tnode.unknown :is(.tn-g,b){color:var(--text-muted)}
+.tn-c{font:400 12px/1.4 var(--font-mono);color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tnode.warn .tn-c{color:var(--warning)} .tnode.bad .tn-c{color:var(--critical)} .tnode.unknown .tn-c{color:var(--text-muted)}
+.tlink{flex:0 0 24px;position:relative;border-top:2px solid var(--success)} .tlink.has{flex-basis:88px}
+.tlink.warn{border-top-color:var(--warning)} .tlink.bad{border-top-color:var(--critical)} .tlink:is(.unknown,.checking){border-top-color:var(--border-strong)} .tlink.dashed{border-top-style:dashed}
+.tlink span{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font:700 11px/1 var(--font-mono);white-space:nowrap;color:var(--critical)} .tlink.warn span{color:var(--warning)}
 .verdict{display:flex;align-items:center;gap:var(--space-3);font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
 .xh1{margin:0;font-size:34px;font-weight:700;line-height:1.25;max-width:900px;text-wrap:balance}
 .chip.mono{font:400 13px/1.5 var(--font-mono)} .chip.neutral{background:var(--bg-input)}
@@ -329,7 +343,7 @@ button:disabled{cursor:default;opacity:.45}
   .rail-toggle{top:var(--space-3);right:var(--space-3)} .rail.collapsed .rail-toggle{position:absolute}
   .headline h1{font-size:26px}
   .detail{flex-direction:column}
-  .segments{overflow-x:auto}
+  .segments{overflow-x:auto} .tchain{overflow-x:auto;padding-top:var(--space-3)} .tnode{min-width:120px}
   .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0}
   .kg-pc{grid-template-columns:1fr 1fr} .kg-panel{height:auto;max-height:none} .kg-pc > div{max-height:160px}
   .sheet,.sheet.wide{width:calc(100vw - 24px);padding:var(--space-4)}

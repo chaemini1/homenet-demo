@@ -109,13 +109,15 @@ const withIdRefs = (text, known) => known ? esc(text).replace(KG_ID, m => known.
 export const logRowHTML = (e, known) => `<div class="logrow"><span class="lt">${esc(e.time)}</span><span class="tag ${esc(e.tone)}">${esc(e.tag)}</span><span class="lx">${withIdRefs(e.text, known)}</span></div>`;
 // collapsed = 사이드바처럼 접힌 상태(폭 56px 띠). 접기 버튼과 세로 이름은 늘 있고, 로그·내보내기는 #rail-log 안 → CSS가 접힌 동안 숨긴다
 export const expertRailHTML = (log, known, collapsed = false) => `<button type="button" class="iconbtn rail-toggle" data-rail-toggle aria-controls="rail-log" aria-expanded="${!collapsed}" aria-label="${esc(log.title)} ${collapsed ? '펼치기' : '접기'}">${collapsed ? '›' : '‹'}</button><span class="rail-vlabel" aria-hidden="true">${esc(log.title)}</span><div class="rail-log" id="rail-log"><div class="log"><div class="lhead"><b>${esc(log.title)}</b><span>${esc(log.range)}</span></div>${log.entries.length ? log.entries.map(e => logRowHTML(e, known)).join('') : `<p class="state">${esc(log.empty_text)}</p>`}</div><div class="spacer"></div><button type="button" class="btn sec" data-event="export_log">${esc(log.export_label)}</button></div>`;
-// 일반 사용자 PathCard와 같은 모습(칸 + 글리프 + 라벨), 문구는 전문 용어 유지. 라벨 있는 링크만 칸 사이에 표시.
+// 전문가 연결 경로: 일반 모드 경로 카드와 같은 방향(내 컴퓨터 → 인터넷). 데이터는 바깥(인터넷)부터 오므로 뒤집는다 — links[i]는 nodes[i]↔nodes[i+1].
+// 칸 = 상태 글리프 + 이름 + 측정값(한 칸 안에). 칸 사이엔 늘 선, 문제 구간은 선 색·점선 + 선 위 라벨. 일반 모드 .seg와 CSS를 나눈다
 export function topologyHTML(t) {
-  const seg = n => `<div class="seg ${tone(n.tone)}"><div class="box">${GLYPH[tone(n.tone)] ?? '?'}</div><div class="lab">${esc(n.label)}</div><div class="cap">${esc(n.caption)}</div></div>`;
-  const link = l => l?.label ? `<div class="seglink ${tone(l.tone)}">${esc(l.label)}</div>` : '';
-  return `<section class="card path">
+  const nodes = [...t.nodes].reverse(), links = [...t.links].reverse();
+  const node = n => `<div class="tnode ${tone(n.tone)}"><div class="tn-h"><span class="tn-g">${GLYPH[tone(n.tone)] ?? '?'}</span><b>${esc(n.label)}</b></div><div class="tn-c">${esc(n.caption)}</div></div>`;
+  const link = l => `<div class="tlink ${tone(l?.tone)}${l?.dashed ? ' dashed' : ''}${l?.label ? ' has' : ''}">${l?.label ? `<span>${esc(l.label)}</span>` : ''}</div>`;
+  return `<section class="card path topo">
     <div class="chead"><b>${esc(t.title)}</b><span>${esc(t.note)}</span></div>
-    <div class="segments">${t.nodes.map((n, i) => seg(n) + link(t.links[i])).join('')}</div>
+    <div class="tchain">${nodes.map((n, i) => node(n) + (i < nodes.length - 1 ? link(links[i]) : '')).join('')}</div>
     <div class="conclusion">${dotHTML(t.conclusion.tone)}<p>${esc(t.conclusion.text)}</p></div>
   </section>`;
 }
