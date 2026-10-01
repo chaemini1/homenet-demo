@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=c954232f';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML } from './render.js?v=c954232f';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=989e548b';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=989e548b';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: Date.now() };
@@ -237,8 +237,40 @@ function selectKg(id, { focus = false, reveal = false } = {}) {
   if (focus) n.focus({ preventScroll: true });
   if (reveal) $('#stage .kg').scrollIntoView({ block: 'nearest' });
 }
+// 수동 배치는 받은 KG의 메모리 좌표만 바꾼다. 보기 전환에도 유지, 새로고침하면 원래 배치. 클릭과 5px 이상 드래그를 구분한다.
+let kgDrag = null, kgDragged = null;
+const kgPoint = (svg, e) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+$('#stage').addEventListener('pointerdown', e => {
+  kgDragged = null;
+  const el = e.target.closest('.kg-scroll .kg-n[role="option"]');
+  if (!el || e.button !== 0 || !e.isPrimary) return;
+  const svg = el.closest('svg'), node = state.kg.nodes.find(n => n.id === el.dataset.kg);
+  kgDrag = { el, svg, node, pointer: e.pointerId, start: kgPoint(svg, e), client: [e.clientX, e.clientY], x: node.x, y: node.y, box: el.getBBox(), moved: false };
+  el.setPointerCapture(e.pointerId);
+});
+$('#stage').addEventListener('pointermove', e => {
+  const d = kgDrag; if (!d || d.pointer !== e.pointerId) return;
+  if (!d.el.isConnected) { endKgDrag(e); return; }
+  if (!d.moved && Math.hypot(e.clientX - d.client[0], e.clientY - d.client[1]) < 5) return;
+  d.moved = true; d.el.classList.add('dragging');
+  const p = kgPoint(d.svg, e), [W, H] = state.kg.meta.view, b = d.box;
+  d.node.x = Math.max(12 - b.x, Math.min(W - 12 - b.x - b.width, d.x + p.x - d.start.x));
+  d.node.y = Math.max(12 - b.y, Math.min(H - 30 - b.y - b.height, d.y + p.y - d.start.y)); // 출처 도장 띠도 비워 둔다
+  d.el.setAttribute('transform', `translate(${d.node.x} ${d.node.y})`);
+  for (const edge of d.svg.querySelectorAll('.kg-e')) {
+    const { s, t } = edge.dataset; if (s !== d.node.id && t !== d.node.id) continue;
+    const a = state.kg.nodes.find(n => n.id === s), z = state.kg.nodes.find(n => n.id === t);
+    const [aw, ah] = state.kg.meta.types[a.type]?.size ?? [12, 12], [zw, zh] = state.kg.meta.types[z.type]?.size ?? [12, 12];
+    edge.setAttribute('d', kgLine(a, aw / 2, ah / 2, z, zw / 2, zh / 2));
+  }
+});
+function endKgDrag(e) {
+  const d = kgDrag; if (!d || d.pointer !== e.pointerId) return;
+  kgDragged = d.moved ? d.el : null; d.el.classList.remove('dragging'); kgDrag = null;
+}
+for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) $('#stage').addEventListener(event, endKgDrag);
 // 설정 "지식그래프 노드 ID 표시": 바깥 이름 라벨을 접두어 없는 id(mono)로. 긴 id는 원래 짧은 이름 폭까지만 압축한다.
-// 기본 배치는 내부 종류 라벨 기준이므로 ID 모드의 바깥 글자는 겹칠 수 있다. 전체 id는 패널·툴팁에도 있다.
+// 배치는 바깥 이름 자리도 예약한다. ID도 그 폭 안에 맞추며 전체 id는 패널·툴팁에도 있다.
 function applyKgLabels() {
   let on = false; try { on = !!JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')['kg-id']; } catch { /* 저장값 없음 → 꺼짐 */ }
   if (!on) return;
@@ -343,7 +375,10 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-event],[data-answer],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
   if (el.dataset.kgView) { state.kgView = el.dataset.kgView; return void repaintKg(`#stage [data-kg-view="${el.dataset.kgView}"]`); }
-  if (el.dataset.kg) return void selectKg(el.dataset.kg, { focus: true, reveal: !el.closest('#stage') });   // 로그(왼쪽)의 id를 눌렀으면 카드를 화면에 보이게
+  if (el.dataset.kg) {
+    if (kgDragged === el && e.detail) { kgDragged = null; return; }
+    return void selectKg(el.dataset.kg, { focus: true, reveal: !el.closest('#stage') });   // 로그(왼쪽)의 id를 눌렀으면 카드를 화면에 보이게
+  }
   if (el.dataset.nav) return void route(el.dataset.nav);
   if (el.dataset.expertOff !== undefined) return void expertOff();
   // 기록 아코디언: 같은 행을 다시 누르면 접기

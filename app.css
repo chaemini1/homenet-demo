@@ -1,4 +1,4 @@
-@import url("tokens.css?v=c954232f");
+@import url("tokens.css?v=989e548b");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -234,7 +234,7 @@ button:disabled{cursor:default;opacity:.45}
 :is(.kg-e,.kg-ah).flow{--ink:var(--text-muted)}
 .kg .chead{align-items:center;gap:var(--space-3)}
 .kg-svg{display:block;width:100%;height:auto}
-.kg-scroll{overflow-x:auto} .kg-scroll > .kg-svg{min-width:600px;max-height:760px}
+.kg-scroll{overflow-x:auto} .kg-scroll > .kg-svg{min-width:800px;max-width:900px;margin-inline:auto}
 .kg-e{fill:none;stroke:var(--ink,var(--border-strong));stroke-width:1;vector-effect:non-scaling-stroke} .kg-e.on{stroke-width:2} .kg-e.prop{stroke-dasharray:4 3}
 .kg-ah{fill:var(--ink,var(--border-strong))}
 .kg-scroll :is(.kg-e:not(.on),.kg-ah.ctx){--ink:var(--text-muted)} .kg-scroll .kg-e:not(.on){opacity:.9}
@@ -251,7 +251,6 @@ button:disabled{cursor:default;opacity:.45}
 .kg-scroll .kg-n:not(.on) .kg-ic{stroke-opacity:1}
 .kg-kind{fill:var(--bg-base);font:500 7px var(--font-ui);text-anchor:middle;dominant-baseline:central}
 .kg-kind.big{font-size:10px;font-weight:600}
-.kg-scroll .kg-n:not(.on) .kg-l:not(.id){visibility:hidden}   /* 이번 경로 노드는 이름을 항상 보여 주고, 나머지는 올리거나 선택할 때만 */
 /* 칩(이름이 안에): 검은 글씨 */
 .kg-t{fill:var(--bg-base);font:600 12px var(--font-ui);dominant-baseline:central;text-anchor:start} .kg-t.big{font-size:13.5px;font-weight:700}
 .kg-n.out .kg-t{fill:var(--text-secondary);font-weight:400;text-decoration:line-through}
@@ -287,6 +286,7 @@ button:disabled{cursor:default;opacity:.45}
 .kg-list{margin:var(--space-4) 0 var(--space-3);padding-left:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);font-size:14px;line-height:1.6}
 /* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
 #stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
+.kg-scroll .kg-n{touch-action:none;user-select:none} .kg-scroll .kg-n.dragging{cursor:grabbing}
 .kg-n:not(.on):hover .kg-s{stroke:var(--text-secondary)}
 .kg-ring{display:none;fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}
 .kg-n.sel .kg-ring{display:block}

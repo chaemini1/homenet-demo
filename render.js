@@ -179,7 +179,7 @@ const kgCurve = (a, ahw, ahh, b, bhw, bhh, gap = 8) => {
   return `M${r1(x1)} ${r1(a.y)}C${r1(mx)} ${r1(a.y)} ${r1(mx)} ${r1(b.y)} ${r1(x2)} ${r1(b.y)}`;
 };
 // 직선(유기적 배치): 두 사각형의 경계 사이. gap = 화살촉 자리
-const kgLine = (a, ahw, ahh, b, bhw, bhh, gap = 8) => {
+export const kgLine = (a, ahw, ahh, b, bhw, bhh, gap = 8) => {
   const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, big = 1e9;
   const ta = Math.min(ahw / (Math.abs(ux) || 1 / big), ahh / (Math.abs(uy) || 1 / big)) + 2, tb = Math.min(bhw / (Math.abs(ux) || 1 / big), bhh / (Math.abs(uy) || 1 / big)) + gap;
   return `M${r1(a.x + ux * ta)} ${r1(a.y + uy * ta)}L${r1(b.x - ux * tb)} ${r1(b.y - uy * tb)}`;
@@ -194,7 +194,7 @@ const kgBadge = (w, h, r = 10) => `<g class="kg-badge" transform="translate(${r1
 const kgMini = ty => `<svg class="kg-mini" viewBox="-14 -12 28 24" width="28" height="24" aria-hidden="true"><g class="kg-n on neutral"><path class="kg-s" d="${kgSil('square', 26, 22)}"/>${kgIcon(ty.shape, -6, -6, .75)}</g></svg>`;
 
 
-// 전문가: kg.json의 힘 기반 네트워크 배치를 그대로 쓴다. 보기·진단·선택이 바뀌어도 노드 위치는 같다.
+// 전문가: kg.json의 힘 기반 배치로 시작하며, 드래그한 메모리 좌표도 같은 방식으로 그린다. 보기·선택 때 재배치하지 않는다.
 // 좌표가 없거나 KG에 없는 경로 id는 그리지 않고 아래 foot에 적는다. 출처 미확인이면 pill·SVG 안 도장·notice.
 // o.view: 기본 'all' = 전체 네트워크, 'focus' = 전체를 유지하며 경로 밖을 흐리게. 경로 밖 이름은 hover·선택·포커스 때 표시.
 // 노드는 listbox의 option: 선택은 하나(aria-selected), Tab 정지점도 선택 노드 하나(로빙 tabindex). o.sel = 이전 선택, o.log = 패널의 '근거·로그'용 로그 줄
@@ -215,7 +215,7 @@ export function kgGraphHTML(kg, path = [], o = {}) {
     const cls = `kg-e${on ? ` on ${k}` : ''}${e.prop ? ' prop' : ''}`, mk = `marker-end="url(#kgx-a-${k})"`;
     const a = pos.get(e.s), b = pos.get(e.t), da = dims(e.s), db = dims(e.t);
     const d = kgLine(a, da.w / 2, da.h / 2, b, db.w / 2, db.h / 2);
-    return { on, html: `<path class="${cls}" d="${d}" ${mk}/>` };
+    return { on, html: `<path class="${cls}" d="${d}" data-s="${esc(e.s)}" data-t="${esc(e.t)}" ${mk}/>` };
   });
   // 기본 선택: 이전 선택 → 채택 원인 → 첫 경로 노드 → 첫 노드 (항상 하나, 지금 그려진 노드 중에서)
   const selId = pos.has(o.sel) ? o.sel : (nodes.find(n => kgType(meta, n.type).badge && tones.get(n.id) === 'bad') ?? nodes[0])?.id;
@@ -225,7 +225,8 @@ export function kgGraphHTML(kg, path = [], o = {}) {
     const glyph = t && KG_GLYPH[t] ? KG_GLYPH[t] : '';
     const body = kgTile(ty, d.w, d.h, glyph);
     // 기각(out) 라벨은 두 번: 선을 가리는 배경색 테두리는 장식 없는 뒤 글자(kg-halo)에만 — 취소선에 테두리가 붙으면 글자 가운데를 지운다
-    const tx = cls => `<text class="kg-l${cls}" y="${d.h / 2 + 14}">${esc(n.label ?? n.name)}</text>`;
+    const lines = kgLines(n.label ?? n.name, 11).map(l => l.length > 11 ? `${l.slice(0, 10).trimEnd()}…` : l);
+    const tx = cls => `<text class="kg-l${cls}" y="${d.h / 2 + 18}">${lines.map((l, i) => `<tspan x="0" dy="${i ? 14 : 0}">${esc(l)}</tspan>`).join('')}</text>`;
     const label = (t === 'out' ? tx(' kg-halo') : '') + tx('');
     return `<g class="kg-n${t ? ` on ${t}` : ''}${n.proposed ? ' prop' : ''}${sel ? ' sel' : ''}" transform="translate(${ps.x} ${ps.y})" role="option" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" data-kg="${esc(n.id)}" data-o="${order.get(n.id)}" aria-label="${esc(aria)}"><title>${esc(n.name)} · ${esc(n.id)}</title>${body.s}`
       + `<g aria-hidden="true"><path class="kg-ring" d="${kgSil('square', d.w + 10, d.h + 10)}"/>${body.inner}${adopted ? kgBadge(d.w, d.h) : ''}${label}</g></g>`;
@@ -374,6 +375,6 @@ export function ledGuideHTML() {
     <text x="180" y="216" text-anchor="middle" style="fill:var(--accent);font:400 12px var(--font-ui)">이 불을 봐주세요</text>
   </svg>
   <p class="foot" style="margin:0 0 var(--space-2)">지구본 모양이거나 Internet · WAN이라고 적혀 있어요. 공유기 앞면이나 윗면에 있어요.</p>
-  <div class="lic"><div class="metric ok"><span class="k">흰색·초록색·파란색 등으로 켜져 있어요</span><span class="v">켜져 있어요</span></div><div class="metric bad"><span class="k">불이 없거나 빨간색이에요</span><span class="v">꺼져 있어요</span></div></div>
-  <p class="foot">기종마다 순서와 모양이 조금씩 달라요. 전원 표시등은 빨간색이 정상인 기종도 있고, 안테나가 안 보이는 기종도 있어요. 못 찾겠으면 "잘 모르겠어요"를 골라도 돼요.</p>`;
+  <div class="lic"><div class="metric ok"><span class="k">흰색·초록색·파란색·보라색 등으로 켜져 있어요</span><span class="v">켜져 있어요</span></div><div class="metric bad"><span class="k">불이 없거나 빨간색이에요</span><span class="v">꺼져 있어요</span></div></div>
+  <p class="foot">기종마다 순서와 모양이 조금씩 달라요. 전원 표시등은 빨간색이 정상인 기종도 있고, 안테나가 안 보이는 기종도 있어요. 표시등을 끄는 스위치가 있는 기종도 있어서, 모든 불이 꺼져 있으면 뒷면·옆면 스위치도 봐 주세요. 못 찾겠으면 "잘 모르겠어요"를 골라도 돼요.</p>`;
 }
