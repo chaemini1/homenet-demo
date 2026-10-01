@@ -1,9 +1,18 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=8d821a92';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=8d821a92';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=04266651';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=04266651';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: Date.now() };
 const SETTINGS_KEY = 'homenet.settings';
+// 화면 모드: 설정 theme = auto | dark | light (기본 dark). auto는 컴퓨터 설정을 따라가고 바뀌면 같이 바뀐다. index.html의 인라인 스크립트가 첫 그리기 전에 같은 규칙으로 먼저 적용한다
+const lightMQ = matchMedia('(prefers-color-scheme: light)');
+function applyTheme(pref) {
+  const t = pref === 'auto' ? (lightMQ.matches ? 'light' : 'dark') : pref === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+}
+const storedTheme = () => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').theme || 'dark'; } catch { return 'dark'; } };
+applyTheme(storedTheme());
+lightMQ.addEventListener('change', () => { if (storedTheme() === 'auto') applyTheme('auto'); });
 const scenario = new URLSearchParams(location.search).get('scenario') === 'outside' ? 'outside' : 'wifi';
 // 데모 빌드의 예시 링크(build-static.py가 넣음): 지금 보고 있는 예시를 표시. 서버 모드엔 이 링크가 없다
 document.querySelectorAll('[data-scenario]').forEach(a => { if (a.dataset.scenario === scenario) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); } });
@@ -403,6 +412,7 @@ document.addEventListener('click', e => {
     }
     saveSettingsValues();
     if (id === 'isp') paintTopIsp();   // localize가 저장값을 읽으므로 저장 뒤에
+    if (id === 'theme') applyTheme(el.dataset.val);
     return;
   }
   if (el.dataset.answer) { state.selectedAnswer = el.dataset.answer; showScreen(state.session.payload); return; }

@@ -1,4 +1,4 @@
-@import url("tokens.css?v=8d821a92");
+@import url("tokens.css?v=04266651");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -76,7 +76,7 @@ button:disabled{cursor:default;opacity:.45}
 .mlist .mhead b{font-weight:600;color:var(--text-primary)} .mlist .mhead span{font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
 .slm{display:flex;flex-direction:column;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--bg-input);width:100%}
 .slm .head{display:flex;align-items:center;padding-bottom:var(--space-2)}
-.slm .head .t{font:400 13px/1.5 var(--font-mono);color:#fff;width:43px}
+.slm .head .t{font:400 13px/1.5 var(--font-mono);color:var(--text-primary);width:43px}
 .note{display:flex;flex-direction:column;gap:var(--space-1)}
 .note .row{display:flex;align-items:center;gap:var(--space-2);font-size:13px;font-weight:600}
 .note p{margin:0;font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
@@ -351,3 +351,9 @@ button:disabled{cursor:default;opacity:.45}
   .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 시트가 좌우로 스크롤된다 */
   .rec-head .rc{width:auto}
 }
+
+/* 라이트 모드 보정: 경로 밖 회색 타일을 옅게(진한 회색이면 경로 색과 안 구분됨) — 면은 옅은 회색, 아이콘·종류명은 진한 회색 */
+:root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-s{fill:var(--border-strong);fill-opacity:.9}
+:root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-ic{stroke:var(--text-secondary)}
+:root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-kind{fill:var(--text-secondary)}
+:root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-gl.sm{fill:var(--text-secondary)}
