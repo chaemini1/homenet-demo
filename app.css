@@ -1,4 +1,4 @@
-@import url("tokens.css?v=04266651");
+@import url("tokens.css?v=644c9c77");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -357,3 +357,13 @@ button:disabled{cursor:default;opacity:.45}
 :root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-ic{stroke:var(--text-secondary)}
 :root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-kind{fill:var(--text-secondary)}
 :root[data-theme="light"] .kg-scroll .kg-n:not(.on) .kg-gl.sm{fill:var(--text-secondary)}
+
+/* 딱딱한 인상 줄이기(10/2, 두 모드 공통): 숫자는 같은 폭, 코드 id만 고정폭, 기본 상태 카드는 테두리 대신 바탕(다크)·그림자(라이트)로 구분.
+   상태가 있는 테두리(선택한 답, 완료·실패한 단계, 펼친 기록)는 그대로 둔다 — :not()으로 빼야 상태 테두리가 안 지워진다 */
+body{font-variant-numeric:tabular-nums}
+:is(.idref,.kg-l.id,code){font-family:var(--font-code)}
+:is(.card,.step:not(.done):not(.failed),.answer:not(.selected),.rec:not(.open),.set-row){border-color:transparent}
+:root[data-theme="light"] :is(.card,.step,.answer,.rec,.set-row){box-shadow:0 1px 3px rgba(50,50,93,.08),0 1px 1px rgba(0,0,0,.03)}
+:root[data-theme="light"] .sheet{border-color:transparent;box-shadow:0 13px 27px -5px rgba(50,50,93,.20),0 8px 16px -8px rgba(0,0,0,.25)}
+.seg .box{border-width:1px}
+.seg.ok .box{background:var(--success-bg)}

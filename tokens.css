@@ -1,9 +1,10 @@
-/* Figma "01 Foundations" 그대로(다크). 새 값을 추가하지 않는다. 단 라이트 모드(아래 [data-theme=light])는 Figma에 없는 값 — 10/1 추가, Figma 미반영 */
+/* 다크 = Figma "01 Foundations" 기반. 10/2 사용자 결정으로 일부 조정(Figma 미반영): 글자색을 조금 낮추고, 카드 바탕을 한 단계 밝게(카드 테두리를 없애도 구분되게), 고정폭 글꼴은 코드 id에만.
+   라이트 모드(아래 [data-theme=light])는 Figma에 없는 값 — 10/1 추가 */
 :root{
   color-scheme:dark;
-  --bg-base:#141416; --bg-surface:#1d1d20; --bg-input:#26262b;
+  --bg-base:#141416; --bg-surface:#1f1f23; --bg-input:#28282d;
   --border-subtle:#2b2b30; --border-strong:#34343a;
-  --text-primary:#ececec; --text-secondary:#d8d8dc; --text-muted:#8b8b93; --text-on-accent:#141416;
+  --text-primary:#e8e8ec; --text-secondary:#cfcfd5; --text-muted:#8b8b93; --text-on-accent:#141416;
   --accent:#cdea50; --accent-bg:rgba(205,234,80,.14);
   --success:#4cc27e; --success-bg:rgba(76,194,126,.14);
   --warning:#f0a13d; --warning-bg:rgba(240,161,61,.14);
@@ -11,17 +12,19 @@
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-7:28px;
   --radius-sm:6px; --radius-md:8px; --radius-lg:10px; --radius-xl:12px; --radius-full:999px;
   --font-ui:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
-  --font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  --font-code:'JetBrains Mono',ui-monospace,Consolas,monospace;   /* 코드 id(cause_isp_outage 등)에만 */
+  --font-mono:var(--font-ui);   /* 예전 고정폭 자리(값·시간·안내문): 이제 UI 글꼴 + 숫자 같은 폭(app.css body tabular-nums). 고정폭 글자 간격이 딱딱해 보여서(10/2) */
 }
-/* 라이트: 같은 토큰 이름에 값만 바꾼다(앱 코드는 토큰만 쓰므로 CSS를 따로 쓰지 않는다).
-   색은 흰 바탕에서 글자·테두리로 4.5:1 안팎이 되게 어둡게 잡았다. 라임은 바탕에선 어둡게(#5a6e00), 그 위 글자는 흰색 */
+/* 라이트: 같은 토큰 이름에 값만 바꾼다. 흰색 + 부드러운 블루(10/2, 참고: Stripe 로그인 화면의 색감).
+   글자는 검정이 아니라 회청색(slate), 블루는 보라 기가 조금 섞인 색, 선은 아주 옅게 — 카드는 선 대신 그림자로 띄운다(app.css 맨 아래).
+   글자 대비는 흰 바탕에서 4.5:1 이상 */
 :root[data-theme="light"]{
   color-scheme:light;
-  --bg-base:#f4f4f2; --bg-surface:#ffffff; --bg-input:#ebebe8;
-  --border-subtle:#e2e2de; --border-strong:#c9c9c3;
-  --text-primary:#18181a; --text-secondary:#3b3b40; --text-muted:#6b6b73; --text-on-accent:#ffffff;
-  --accent:#5a6e00; --accent-bg:rgba(90,110,0,.12);
-  --success:#17733d; --success-bg:rgba(23,115,61,.12);
-  --warning:#8f5300; --warning-bg:rgba(143,83,0,.12);
-  --critical:#c9372c; --critical-bg:rgba(201,55,44,.10);
+  --bg-base:#f6f9fc; --bg-surface:#ffffff; --bg-input:#f0f4f9;
+  --border-subtle:#e6ebf1; --border-strong:#d5dbe3;
+  --text-primary:#2a2f45; --text-secondary:#4f566b; --text-muted:#64708a; --text-on-accent:#ffffff;
+  --accent:#4258d6; --accent-bg:rgba(66,88,214,.10);
+  --success:#17733d; --success-bg:rgba(23,115,61,.10);
+  --warning:#8f5300; --warning-bg:rgba(143,83,0,.10);
+  --critical:#c9372c; --critical-bg:rgba(201,55,44,.08);
 }
