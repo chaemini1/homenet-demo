@@ -1,4 +1,4 @@
-@import url("tokens.css?v=644c9c77");
+@import url("tokens.css?v=4906ac10");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -141,6 +141,7 @@ button:disabled{cursor:default;opacity:.45}
 .answer .hint{font-size:13.5px;color:var(--text-secondary)}
 .actions{display:flex;align-items:center;gap:var(--space-3);width:100%}
 .actions .foot{font-family:var(--font-ui);font-size:13.5px;word-break:keep-all}
+.actions.home-cta .btn.pri{height:56px;font-size:16px;padding:0 28px}   /* 홈의 진단 시작만 한 단계 크게 (52→56). 더 키우면 경보 버튼처럼 보임 */
 .actions .btn{flex:none}   /* 버튼 글자는 nowrap이라 줄면 테두리 밖으로 넘친다 → 자리가 모자라면 각주가 줄바꿈 */
 .btn{display:inline-flex;align-items:center;justify-content:center;height:52px;min-width:160px;padding:var(--space-3) var(--space-6);border-radius:var(--radius-md);font-size:15px;font-weight:600;white-space:nowrap;text-decoration:none}
 .btn.pri{background:var(--accent);color:var(--text-on-accent)} .btn.pri:hover:not(:disabled){filter:brightness(1.06)}
@@ -240,6 +241,12 @@ button:disabled{cursor:default;opacity:.45}
 .sheet::backdrop{background:rgba(0,0,0,.6)}
 .sheet .chead.big{margin-bottom:var(--space-4)}
 .sheet .lic{margin-top:var(--space-3)} .sheet .k small{display:block;color:var(--text-muted);font-size:12px}
+/* 사용법: 내용만 스크롤해 닫기·시작하기가 작은 화면에서도 남게 한다. */
+.sheet.intro[open]{display:flex;flex-direction:column;gap:var(--space-4);max-height:80dvh;overflow:hidden}
+.sheet.intro > .chead{flex:none;margin-bottom:0}
+.intro-body{min-height:0;overflow:auto;overscroll-behavior:contain}
+.sheet.intro .intro-actions{flex:none}
+.intro-actions .foot{flex:1;min-width:0}
 
 /* ---- KG 그래프 (전문가 카드 · 일반 시트): 상태색 면 + 글리프 + 글자. 글로우·그림자·그라데이션·움직임 없음 ---- */
 /* --ink = 상태색 한 곳 매핑 (노드 면, 경로 선, 화살촉) */
@@ -297,6 +304,9 @@ button:disabled{cursor:default;opacity:.45}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}
+.intro-lead{margin:0;font-size:15px;line-height:1.6;color:var(--text-secondary)}
+.intro-h{margin:var(--space-4) 0 0;font-size:13px;font-weight:600;color:var(--text-muted)}
+.sheet .intro-list{margin:var(--space-2) 0 0} .intro-list span{display:block;color:var(--text-secondary);font-size:13px}
 .kg-list{margin:var(--space-4) 0 var(--space-3);padding-left:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);font-size:14px;line-height:1.6}
 /* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
 #stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
@@ -344,12 +354,18 @@ button:disabled{cursor:default;opacity:.45}
   .headline h1{font-size:26px}
   .detail{flex-direction:column}
   .segments{overflow-x:auto} .tchain{overflow-x:auto;padding-top:var(--space-3)} .tnode{min-width:120px}
-  .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0}
+  .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0} .actions.home-cta .btn{flex-basis:100%}   /* 둘이 한 줄이면 진단 시작 글자가 잘림 → 버튼마다 한 줄 */
   .kg-pc{grid-template-columns:1fr 1fr} .kg-panel{height:auto;max-height:none} .kg-pc > div{max-height:160px}
   .sheet,.sheet.wide{width:calc(100vw - 24px);padding:var(--space-4)}
+  .intro-actions .foot{flex-basis:100%}
   .kg .chead{flex-wrap:wrap;row-gap:var(--space-2)} .kg .chead .spacer{display:none} .kg-ph{flex-wrap:wrap} .kg-view{margin-left:auto}   /* 카드 머리·패널 머리는 줄바꿈(글자가 한 글자씩 세로로 쪼개지지 않게) */
   .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 시트가 좌우로 스크롤된다 */
-  .rec-head .rc{width:auto}
+  .rec-head{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"when result" "cause toggle" "fix fix";gap:var(--space-2) var(--space-3)}
+  .rec-head .rw{grid-area:when;width:auto}
+  .rec-head .rc{grid-area:cause;width:auto}
+  .rec-head .rf{grid-area:fix;overflow-wrap:anywhere}
+  .rec-head .pill{grid-area:result;justify-self:end}
+  .rec-head .rt{grid-area:toggle;justify-self:end}
 }
 
 /* 라이트 모드 보정: 경로 밖 회색 타일을 옅게(진한 회색이면 경로 색과 안 구분됨) — 면은 옅은 회색, 아이콘·종류명은 진한 회색 */

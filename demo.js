@@ -14,8 +14,12 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
   const invalid = field => { throw new HttpError(422, { detail: [{ loc: ['body', field] }] }); };   // 422 본문은 계약 밖(A-2) — 패리티는 상태 코드만 본다
   const isObj = b => b !== null && typeof b === 'object' && !Array.isArray(b);                     // pydantic: 본문이 null·배열·숫자면 422
 
-  function getStatus() {
+  function getStatus(check = true) {
     const s = load('status.json');
+    if (!check) {
+      Object.assign(s, load('status_unchecked.json'));
+      for (const v of Object.values(s.by_isp ?? {})) if (v.home) v.home = { ...s.home, isp: v.home.isp };
+    }
     s.recent = records().slice(0, 3).map(r => ({ label: r.recent_label, when: r.when, tone: r.status.tone }));
     return s;
   }
@@ -98,7 +102,11 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
   }
   function route(method, path, body) {
     const u = new URL(path, 'http://demo'), p = u.pathname, m = p.match(/^\/diagnose\/([^/]+)\/advance$/);
-    if (method === 'GET' && p === '/status') return getStatus();
+    if (method === 'GET' && p === '/status') {
+      const value = u.searchParams.getAll('check').at(-1)?.toLowerCase(), yes = ['true', '1', 'on', 'yes', 't', 'y'], no = ['false', '0', 'off', 'no', 'f', 'n'];
+      if (value !== undefined && !yes.includes(value) && !no.includes(value)) invalid('check');
+      return getStatus(!no.includes(value));
+    }
     if (method === 'GET' && p === '/records') return getRecords();
     if (method === 'POST' && p === '/records/clear') { RECORDS = []; return { cleared: true }; }
     if (method === 'GET' && p === '/settings') return load('settings.json');

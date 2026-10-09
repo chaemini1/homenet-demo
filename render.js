@@ -41,7 +41,7 @@ export function stepConfirmHTML(s, index) {
   </div>`;
 }
 export const stepInfoHTML = s => `<div class="step"><div class="head"><div class="num">${esc(s.num)}</div><div><div class="t">${esc(s.title)}</div><div class="h">${esc(s.hint)}</div></div></div></div>`;
-export const answerCardHTML = (a, selected) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}"><div class="ah"><div class="at">${esc(a.title)}</div><div class="chk">✓</div></div><div class="hint">${esc(a.hint)}</div></button>`;
+export const answerCardHTML = (a, selected) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}" aria-pressed="${!!selected}"><div class="ah"><div class="at">${esc(a.title)}</div><div class="chk" aria-hidden="true">✓</div></div><div class="hint">${esc(a.hint)}</div></button>`;
 export function headlineHTML(h) {
   return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1><p>${esc(h.body)}</p></div>`;
 }
@@ -50,19 +50,16 @@ export const actionHTML = (b, cls) => !b ? '' : b.tel
   ? `<a class="${cls}" href="tel:${esc(b.tel)}">${esc(b.label)}</a>`
   : `<button type="button" class="${cls}" data-event="${esc(b.event)}"${b.disabled ? ' disabled' : ''}>${esc(b.label)}</button>`;
 const btn = (b, cls) => actionHTML(b, `btn ${cls}`);
-export function actionsHTML(a) {
-  return `<div class="actions"><p class="foot">${esc(a.footnote)}</p><div class="spacer"></div>${btn(a.secondary, 'sec')}${btn(a.primary, 'pri')}</div>`;
+export function actionsHTML(a, cls = '') {
+  return `<div class="actions${cls ? ' ' + cls : ''}"><p class="foot">${esc(a.footnote)}</p><div class="spacer"></div>${btn(a.secondary, 'sec')}${btn(a.primary, 'pri')}</div>`;
 }
 export const whyAskingHTML = t => `<div class="why">${dotHTML('checking')}<p style="margin:0">${esc(t)}</p></div>`;
-export const noteHTML = () => `<div class="note"><div class="row">${dotHTML('ok')}이 컴퓨터 안에서만 처리돼요</div><p>AI 모델과 지식그래프가 이미 저장돼 있어서 인터넷이 없어도 진단할 수 있어요.</p></div>`;
+export const noteHTML = () => `<div class="note"><div class="row">${dotHTML('neutral')}예시 데이터로 보는 중</div><p>실제 장비를 측정하지 않고 진단 흐름을 보여 드려요.</p></div>`;
 export const railStepsHTML = steps => `<div class="lbl">진단 단계</div>${stepperHTML(steps)}<div class="spacer"></div>${noteHTML()}`;
 export function railHomeHTML(s) {
-  const row = (k, v) => metricRowHTML({ label: k, value: v, status: 'ok' });
+  const row = (k, v) => metricRowHTML({ label: k, value: v, status: 'neutral' });
   return `<div class="lbl">우리 집 인터넷</div>
-    <div>${row('통신사', s.home.isp)}${row('공유기', s.home.router)}${row('연결된 기기', s.home.devices)}${row('마지막 자동 점검', s.home.last_check)}</div>
-    <div class="lbl" style="padding-top:var(--space-4)">온디바이스 SLM</div>
-    <div class="slm"><div class="head"><span class="t">정보</span><div class="spacer"></div>${pillHTML({ tone: 'ok', text: s.engine.state })}</div>
-      ${row('언어 모델', s.engine.model)}${row('양자화 · 크기', s.engine.quant)}${row('지식그래프', s.engine.kg)}${row('마지막 진단 응답', s.engine.last_response)}${row('서버로 보낸 요청', s.engine.server_requests)}</div>
+    <div>${row('통신사', s.home.isp)}${row('공유기', s.home.router)}${row('연결된 기기', s.home.devices)}${row('마지막 예시 확인', s.home.last_check)}</div>
     <div class="spacer"></div>${noteHTML()}`;
 }
 export function recentCardHTML(s) {
@@ -86,20 +83,23 @@ export function recordRowHTML(r, open) {
   return `<div class="rec${open ? ' open' : ''}"><button type="button" class="rec-head" data-rec="${esc(r.id)}"><span class="rw">${esc(r.when)}</span><span class="rc">${esc(r.cause)}</span><span class="rf">${esc(r.fix)}</span><span class="pill ${esc(r.status.tone)}">${esc(r.status.text)}</span><span class="rt">${open ? '접기' : '펼치기'}</span></button>${body}</div>`;
 }
 export const closeBtnHTML = () => `<button type="button" class="iconbtn" data-nav="back" title="닫기 (Esc)" aria-label="닫기">✕</button>`;
-export const recordsStageHTML = (d, openId) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div><div class="recs">${d.records.length ? d.records.map(r => recordRowHTML(r, r.id === openId)).join('') : '<p class="state">아직 진단 기록이 없어요. 문제가 생기면 진단을 시작해 보세요.</p>'}</div><div class="spacer"></div><div class="actions"><p class="foot">${esc(d.footnote)}</p><div class="spacer"></div><button type="button" class="btn sec" data-event="export_records">${esc(d.export_label)}</button></div>`;
+export const recordsStageHTML = (d, openId, demo = false) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div><div class="recs">${d.records.length ? d.records.map(r => recordRowHTML(r, r.id === openId)).join('') : '<p class="state">아직 진단 기록이 없어요. 문제가 생기면 진단을 시작해 보세요.</p>'}</div><div class="spacer"></div><div class="actions"><p class="foot">${esc(demo ? d.demo_footnote ?? d.footnote : d.footnote)}</p><div class="spacer"></div><button type="button" class="btn sec" data-event="export_records">${esc(d.export_label)}</button></div>`;
 
 // ==== W8 설정 ====
 export const settingsRailHTML = (d, activeId) => `<div class="lbl">설정</div><div class="secnavs">${d.sections.map(s => `<button type="button" class="secnav${s.id === activeId ? ' on' : ''}" data-secnav="${esc(s.id)}">${esc(s.title)}</button>`).join('')}</div><div class="spacer"></div><div class="note"><div class="row">${dotHTML('ok')}${esc(d.rail_note.head)}</div><p>${esc(d.rail_note.body)}</p></div>`;
 export function settingControlHTML(row, val) {
   const c = row.control;
   if (c.type === 'segment') return `<div class="seg-ctrl">${c.options.map(o => `<button type="button" class="seg-opt${o.v === val ? ' on' : ''}" aria-pressed="${o.v === val ? 'true' : 'false'}" data-set="${esc(row.id)}" data-val="${esc(o.v)}">${esc(o.label)}</button>`).join('')}</div>`;
-  if (c.type === 'toggle') return `<button type="button" class="toggle${val ? ' on' : ''}" role="switch" aria-checked="${val ? 'true' : 'false'}" data-set="${esc(row.id)}" data-toggle><span class="knob"></span></button>`;
+  if (c.type === 'toggle') return `<button type="button" class="toggle${val ? ' on' : ''}" role="switch" aria-label="${esc(row.title ?? row.id)}" aria-checked="${val ? 'true' : 'false'}" data-set="${esc(row.id)}" data-toggle><span class="knob"></span></button>`;
   if (c.type === 'button') return `<button type="button" class="btn sec small${c.danger ? ' danger' : ''}" data-event="${esc(c.event)}">${esc(c.label)}</button>`;
   return `<span class="set-badge">${esc(c.label)}</span>`;
 }
 export const settingRowHTML = (row, val) => `<div class="set-row${row.danger ? ' danger' : ''}"><div class="set-txt"><div class="st">${esc(row.title)}</div><div class="sh">${esc(row.hint)}</div></div>${settingControlHTML(row, val)}</div>`;
-export const settingsSectionHTML = (sec, values) => `<section class="set-sec" id="set-${esc(sec.id)}"><h2>${esc(sec.title)}</h2>${sec.subtitle ? `<p class="set-sub">${esc(sec.subtitle)}</p>` : ''}<div class="set-rows">${sec.rows.map(r => settingRowHTML(r, values[r.id])).join('')}</div></section>`;
-export const settingsStageHTML = (d, values) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div>${d.sections.map(s => settingsSectionHTML(s, values)).join('')}`;
+export function settingsSectionHTML(sec, values, demo = false) {
+  const subtitle = demo ? sec.demo_subtitle ?? sec.subtitle : sec.subtitle;
+  return `<section class="set-sec" id="set-${esc(sec.id)}"><h2>${esc(sec.title)}</h2>${subtitle ? `<p class="set-sub">${esc(subtitle)}</p>` : ''}<div class="set-rows">${sec.rows.map(r => settingRowHTML(r, values[r.id])).join('')}</div></section>`;
+}
+export const settingsStageHTML = (d, values, demo = false) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div>${d.sections.map(s => settingsSectionHTML(s, values, demo)).join('')}`;
 
 // ==== WE1 전문가 콘솔 ====
 export const expertTopbarHTML = t => `<span class="pill checking">${dotHTML('checking')}${esc(t.pill)}</span><div class="spacer"></div><span class="isp">${esc(t.model)}&nbsp;&nbsp;${esc(t.kg)}</span><span class="toggle-row">${esc(t.toggle_label)}<button type="button" class="toggle on" role="switch" aria-checked="true" data-expert-off><span class="knob"></span></button></span><button type="button" class="ghost" data-nav="settings">설정</button>`;
@@ -355,6 +355,28 @@ export function kgGeneralHTML(kg, path = []) {
 export const sheetHTML = (title, body) => `<div class="chead big"><b id="sheet-title">${esc(title)}</b><div class="spacer"></div><button type="button" class="iconbtn" data-event="close_sheet" aria-label="닫기">✕</button></div>${body}`;
 export const licensesHTML = items => `<div class="lic">${items.map(i => `<div class="metric ok"><span class="k">${esc(i.name)}<small>${esc(i.use)}</small></span><span class="v">${esc(i.license)}</span></div>`).join('')}</div>`;
 // 공유기 그림: 안테나 2개 + 본체(윗면·앞면) + 앞면의 아이콘과 표시등. 기종 공통으로 "보통 이렇게 생겼다"까지만 말한다. 사진이 생기면 <img>로 교체.
+// 사용법은 고정 안내 문구. 두 모드 모두 예시이며 저장·전송 방식과 자동 확인 설정에 맞춰 설명한다.
+const INTRO = {
+  can: [['인터넷이 지나가는 길을 보여 드려요', '내 컴퓨터부터 인터넷까지 여섯 구간의 예시 상태를 봐요'],
+        ['집 안 문제의 조치 순서를 보여 드려요', '공유기 다시 켜기처럼 직접 할 수 있는 일을 한 단계씩'],
+        ['집 밖 문제의 기다림 화면을 보여 드려요', '고객센터 안내와 예시 상태를 다시 확인하는 흐름을 봐요']],
+};
+export function introHTML({ demo = false, autoscan = true } = {}) {
+  const li = ([b, s]) => `<li><b>${esc(b)}</b><span>${esc(s)}</span></li>`;
+  const how = [
+    autoscan ? ['앱을 열면 예시 상태를 자동으로 확인해요', '실제 측정 결과가 아닌 예시가 홈 그림에 나와요']
+      : ['홈에서 예시 상태를 직접 확인해요', "'지금 확인하기'를 누르면 예시를 불러와요"],
+    ["'문제가 있어요, 진단 시작'을 눌러요", '문제 원인과 조치의 예시 흐름을 살펴봐요'],
+    ['질문이 나오면 답을 고르고 다음을 눌러요', '공유기 표시등 같은 질문을 거쳐 다음 단계로 가요'],
+  ];
+  const privacy = demo ? '답과 설정은 외부로 전송하지 않아요. 기록은 새로고침하면 초기화돼요.'
+    : '답은 시연용 서버로 보내요. 기록은 접속자끼리 공유되며 서버 재시작 시 초기화돼요.';
+  return `<div class="intro-body" role="region" aria-label="사용법 내용" tabindex="0"><p class="intro-lead">현재는 실제 장비를 측정하지 않고 예시 데이터로 진단 흐름을 보여 드려요.</p>`
+    + `<h3 class="intro-h">할 수 있는 것</h3><ul class="kg-list intro-list">${INTRO.can.map(li).join('')}</ul>`
+    + `<h3 class="intro-h">쓰는 법</h3><ol class="kg-list intro-list">${how.map(li).join('')}</ol></div>`
+    + `<div class="actions intro-actions"><p class="foot">${esc(privacy)}</p><button type="button" class="btn pri" data-event="close_sheet">시작하기</button></div>`;
+}
+
 export function ledGuideHTML() {
   const ink = 'fill:none;stroke:var(--text-muted);stroke-width:1.6;stroke-linecap:round';
   const ICON = {
