@@ -4,12 +4,26 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23141416'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23cdea50'/%3E%3C/svg%3E">
 <script>/* 첫 화면이 어두웠다 밝아지는 깜빡임을 막으려고 그리기 전에 테마를 정한다(app.js의 applyTheme과 같은 규칙) */
 try{var t=(JSON.parse(localStorage.getItem('homenet.settings')||'{}')).theme||'dark';document.documentElement.dataset.theme=t==='auto'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t}catch(e){document.documentElement.dataset.theme='dark'}</script>
-<link rel="stylesheet" href="fonts.css?v=4906ac10">
-<link rel="stylesheet" href="app.css?v=4906ac10">
+<script>/* app.js의 shouldShowIntro와 같은 규칙. 첫 그리기 전에 앱 틀을 숨기고, 표지를 볼 때만 글꼴을 미리 받는다. */
+var intro=location.hash==='#intro';
+if(!intro&&!['#records','#settings','#expert'].includes(location.hash)){
+  try{if(!localStorage.getItem('homenet.introSeen')){localStorage.setItem('homenet.introSeen','');intro=true}}catch(e){}
+}
+if(intro){
+  document.documentElement.classList.add('intro-active');
+  var font=document.createElement('link');font.rel='preload';font.as='font';font.type='font/woff2';font.crossOrigin='anonymous';font.href='fonts/suite/SUITE-Variable.woff2';document.head.append(font);
+}</script>
+<style>/* 표지와 앱 틀은 첫 프레임부터 함께 보이지 않는다. 글꼴 준비 전에는 검은 바탕만 유지한다. */
+.intro-active body{background:#000}.intro-active .app{display:none!important}
+.intro-active #intro-page{display:block!important;min-height:100vh}
+#intro-page:not(.intro-ready){visibility:hidden}
+</style>
+<link rel="stylesheet" href="fonts.css?v=5130f5ab">
+<link rel="stylesheet" href="app.css?v=5130f5ab">
 </head><body>
 <div class="app">
   <header class="topbar">
-    <div class="brand">홈넷 진단 도우미</div><button type="button" class="pill demo-help" data-event="demo_help" title="서버 없이 도는 데모예요. 누르면 데모 안내가 열려요">데모 안내</button><a class="ghost" href="./" data-scenario="wifi" title="와이파이 문제 예시 (처음부터)">와이파이 예시(집 안)</a><a class="ghost" href="./?scenario=outside" data-scenario="outside" title="통신사 쪽 문제 예시 (처음부터)">통신사 예시(집 밖)</a>
+    <button type="button" class="brand" data-nav="intro" title="첫 페이지로">홈넷 진단 도우미</button><button type="button" class="pill demo-help" data-event="demo_help" title="서버 없이 도는 데모예요. 누르면 데모 안내가 열려요">데모 안내</button><a class="ghost" href="./" data-scenario="wifi" title="와이파이 문제 예시 (처음부터)">와이파이 예시(집 안)</a><a class="ghost" href="./?scenario=outside" data-scenario="outside" title="통신사 쪽 문제 예시 (처음부터)">통신사 예시(집 밖)</a>
     <div id="nav-normal" style="display:contents">
     <nav class="tabs" aria-label="탭"><button type="button" class="tab on" data-nav="home">홈</button><button type="button" class="tab" data-nav="records">기록</button></nav>
     <div class="status-pill" id="status-pill" aria-live="polite"><span class="dot neutral"></span><span id="status-pill-text">예시 데이터로 보는 중</span></div>
@@ -26,6 +40,7 @@ try{var t=(JSON.parse(localStorage.getItem('homenet.settings')||'{}')).theme||'d
     <main class="stage" id="stage"></main>
   </div>
 </div>
+<div id="intro-page" hidden></div>
 <dialog id="sheet" class="sheet" aria-labelledby="sheet-title"></dialog>
-<script type="module" src="app.js?v=4906ac10"></script>
+<script type="module" src="app.js?v=5130f5ab" onerror="document.documentElement.classList.remove('intro-active')"></script>
 <template id="demo-help" data-title="데모 안내"><p>미리 준비한 예시 데이터로 진단 흐름을 보여 드려요. 실제 장비를 측정하지 않고 브라우저 안에서 동작해요.</p><ol class="kg-list"><li><b>진단 시작</b> — 홈에서 <b>문제가 있어요, 진단 시작</b>을 눌러요. 위쪽 <b>와이파이 예시(집 안)</b> / <b>통신사 예시(집 밖)</b>로 다른 경우도 볼 수 있어요.</li><li><b>통신사 흐름</b> — 통신사 예시에서 표시등 질문에 <b>꺼져 있어요</b>를 고르면 기다리기 화면으로 가요. <b>통신사 고르기</b>에서 통신사를 정하면 안내가 그 통신사에 맞게 바뀌어요.</li><li><b>일반 모드 그림</b> — 결과·조치·기다림·완료 화면의 <b>어떻게 알아냈는지 그림으로 보기</b>를 눌러요.</li><li><b>전문가 그래프</b> — 진단을 시작한 뒤 <b>설정</b>에서 <b>전문가 모드 켜기</b>를 켜요. 지식그래프 카드에서 <b>이번 경로 / 전체 보기</b>를 바꾸고, 노드를 누르면 자세한 내용이 나와요.</li></ol><p class="foot">그래프의 노드·관계는 출처를 확인하지 못한 참고 데이터예요.</p></template></body></html>

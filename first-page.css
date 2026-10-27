@@ -1,0 +1,70 @@
+/* 승인된 D 시안. SUITE와 검은 표지의 색은 이 화면 안에서만 사용한다. */
+@font-face{font-family:'SUITE Variable';font-style:normal;font-weight:300 900;font-display:block;src:url('fonts/suite/SUITE-Variable.woff2') format('woff2')}
+.first-page-screen{--font-ui:'SUITE Variable','Gothic A1',sans-serif;--cover-text:#f5f5f5;--cover-secondary:#b8b8be;--cover-muted:#939399;min-height:100vh;background:var(--bg-base);font-family:var(--font-ui)}
+.first-page-screen .first-header,.first-page-screen .intro-cover{background:#000;color:var(--cover-text)}
+/* 라이트 테마에서도 검은 표지는 다크의 라임 버튼을 유지한다. 나머지 앱 토큰에는 영향 없음. */
+.first-page-screen .intro-cover{--accent:#cdea50;--text-on-accent:#141416}
+.first-page-screen .first-header{height:72px;display:flex;align-items:center}
+.first-page-screen .first-header > div{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;letter-spacing:-.02em}
+.first-page-screen .first-brand{display:flex;align-items:center;gap:inherit}
+/* 시작 버튼을 눌렀을 때만 표지를 확대해 걷고, 앱이 이어서 나타난다. */
+html.intro-leaving{overflow:hidden}
+.intro-leaving #intro-page{transform-origin:50% 35vh;pointer-events:none}
+.intro-arrived .app{animation:intro-arrive .28s cubic-bezier(.16,1,.3,1)}
+@keyframes intro-arrive{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+/* 상단 제품 이름으로 돌아왔을 때: 글꼴 준비가 끝난 표지를 크게 펼쳐 보인다. */
+html.intro-returning{overflow-x:clip}
+.intro-returning #intro-page.intro-ready{transform-origin:50% 35vh;animation:intro-return .42s cubic-bezier(.16,1,.3,1)}
+@keyframes intro-return{from{opacity:0;transform:scale(1.10)}to{opacity:1;transform:scale(1)}}
+.first-page-screen .first-header svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.first-page-screen .first-header > *,.first-page-screen .first-page{width:calc(100% - 96px);max-width:1344px;margin-inline:auto}
+.first-page-screen .network-hero{min-height:608px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:16px;padding-block:24px 64px}
+.first-page-screen .network-copy{position:relative;z-index:1}
+.first-page-screen .network-eyebrow{font-size:15px;letter-spacing:.02em;color:var(--cover-secondary);margin:0 0 24px}
+.first-page-screen .network-copy h1{font-size:clamp(50px,4.5vw,64px);line-height:1.2;letter-spacing:-.025em;font-weight:500;word-break:keep-all;margin:0}
+.first-page-screen .network-copy h1 span{display:block;white-space:nowrap}
+.first-page-screen .network-description{font-size:18px;line-height:1.7;margin:28px 0 0;color:var(--cover-secondary);word-break:keep-all}
+.first-page-screen .network-description .mobile-copy{display:none}
+.first-page-screen .hero-actions{margin-top:32px}
+.first-page-screen .hero-actions .btn{height:64px;min-width:224px;justify-content:space-between;padding-inline:28px;font-size:18px;gap:36px;border-radius:var(--radius-full);background:var(--accent);color:var(--text-on-accent);border-color:transparent}
+.first-page-screen .hero-actions .btn:focus-visible{outline:2px solid #fff;outline-offset:5px}
+.first-page-screen .hero-actions svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
+.first-page-screen .copy-note{font-size:13px;line-height:1.7;color:var(--cover-muted);margin:18px 0 0;word-break:keep-all}
+.first-page-screen .network-art{margin:0 -48px 0 0;min-width:0}
+.first-page-screen .network-art img{display:block;width:100%;height:auto;mask-image:linear-gradient(to right,transparent,#000 20%,#000 80%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,#000 20%,#000 80%,transparent)}
+.first-page-screen .how{padding-top:64px}
+.first-page-screen .how-title{font-size:26px;letter-spacing:-.02em;font-weight:600;margin:0 0 32px}
+.first-page-screen .how-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px}
+.first-page-screen .how-steps li{display:flex;flex-direction:column;gap:20px;min-width:0}
+.first-page-screen .step-number{font-size:40px;line-height:1.1;letter-spacing:-.04em;color:var(--text-muted)}
+.first-page-screen .how-steps h3{font-size:18px;line-height:1.5;font-weight:600;margin:0;word-break:keep-all}
+.first-page-screen .how-steps p{font-size:15px;line-height:1.7;color:var(--text-secondary);margin:12px 0 0;word-break:keep-all}
+.first-page-screen .first-footer{margin-top:80px;padding:28px 0 40px;display:grid;gap:12px;font-size:13px;line-height:1.7;color:var(--text-muted);word-break:keep-all}
+.first-page-screen .first-footer p{margin:0;max-width:720px}
+@media(min-width:1400px){.first-page-screen .network-hero{min-height:740px}}
+@media(max-width:1000px) and (min-width:901px){.first-page-screen .network-copy h1{font-size:36px}.first-page-screen .network-description{font-size:15px}.first-page-screen .network-hero{min-height:560px}}
+@media(max-width:900px){
+  .first-page-screen .first-header > *,.first-page-screen .first-page{width:calc(100% - 48px)}
+  .first-page-screen .first-header > div{font-size:15px;gap:9px}
+  .first-page-screen .first-header svg{width:21px;height:21px}
+  .first-page-screen .network-hero{display:flex;flex-direction:column;align-items:stretch;gap:32px;padding-block:36px 40px;min-height:0}
+  .first-page-screen .network-eyebrow{font-size:13px;margin-bottom:20px}
+  .first-page-screen .network-copy h1{font-size:clamp(27px,9vw,34px);line-height:1.25;letter-spacing:-.03em}
+  .first-page-screen .network-description{font-size:16px;line-height:1.7;margin-top:20px}
+  .first-page-screen .network-description .desktop-copy{display:none}
+  .first-page-screen .network-description .mobile-copy{display:block}
+  .first-page-screen .hero-actions{margin-top:24px}
+  .first-page-screen .copy-note{font-size:12px;margin-top:16px}
+  .first-page-screen .network-art{width:calc(100% + 48px);max-width:680px;align-self:center;margin:0 -24px}
+  .first-page-screen .how{padding-top:48px}
+  .first-page-screen .how-title{font-size:23px}
+}
+@media(max-width:700px){.first-page-screen .network-art{max-width:none}}
+@media(max-width:600px){
+  .first-page-screen .first-header{height:64px}
+  .first-page-screen .hero-actions .btn{width:100%}
+  .first-page-screen .how-steps{grid-template-columns:1fr;gap:32px}
+  .first-page-screen .how-steps li{flex-direction:row;gap:24px}
+  .first-page-screen .step-number{font-size:32px;min-width:36px}
+  .first-page-screen .first-footer{margin-top:48px;padding-bottom:32px}
+}

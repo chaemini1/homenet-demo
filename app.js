@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=4906ac10';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, introHTML, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=4906ac10';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=5130f5ab';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=5130f5ab';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -10,6 +10,17 @@ const autoScanEnabled = () => {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').autoscan !== false; } catch { return true; }
 };
 let viewVersion = 0;
+let introDismissed = false;
+let introLeaving = false, introAnimation = null;
+let introReturnMotion = false;
+function shouldShowIntro() {
+  if (introDismissed) return false;
+  try {
+    if (localStorage.getItem(INTRO_KEY)) return false;
+    localStorage.setItem(INTRO_KEY, '');   // 저장 가능 여부만 검사. '봤음'은 시작하기에서 저장한다.
+    return true;
+  } catch { return false; }
+}
 // 화면 모드: 설정 theme = auto | dark | light (기본 dark). auto는 컴퓨터 설정을 따라가고 바뀌면 같이 바뀐다. index.html의 인라인 스크립트가 첫 그리기 전에 같은 규칙으로 먼저 적용한다
 const lightMQ = matchMedia('(prefers-color-scheme: light)');
 function applyTheme(pref) {
@@ -88,6 +99,7 @@ function localize(obj) {
 // 상단 통신사 라벨과 고객센터 버튼 (통신사를 모르면 "통신사 고르기").
 // 홈 상태가 아직 없으면(#settings·#records로 바로 열거나 거기서 새로고침) 한 번 받아 와서 그린다. 실패하면 빈칸 그대로
 function paintTopIsp() {
+  if (state.view === 'intro') return;
   if (!state.status) return void getStatus(false).then(s => { state.status ??= s; paintTopIsp(); }, () => {});
   const s = localize(state.status);
   $('#isp').textContent = s.isp_label;
@@ -97,6 +109,7 @@ function paintTopIsp() {
 // key = 어떤 화면인지. 화면이 바뀔 때만 진입 모션을 준다 (토글·아코디언·15초 갱신 같은 재렌더는 깜빡이지 않게).
 let paintedKey = null;
 function paint({ rail, stage }, key) {
+  if (state.view === 'intro') return;
   $('#rail').innerHTML = rail; $('#stage').innerHTML = stage;
   $('#rail').classList.toggle('collapsed', key === 'expert' && state.railCollapsed);      // 접힌 추론 로그는 전문가 콘솔에서만
   const el = $('#stage');
@@ -134,6 +147,13 @@ window.addEventListener('unhandledrejection', e => {
 function setActiveNav(view) {
   state.view = view;
   viewVersion++;
+  document.documentElement.classList.toggle('intro-active', view === 'intro');
+  $('#intro-page').hidden = view !== 'intro';
+  if (view !== 'intro') $('#intro-page').innerHTML = '';   // 숨긴 표지를 다음 방문까지 DOM에 남기지 않는다.
+  introAnimation?.cancel(); introAnimation = null;
+  document.documentElement.classList.remove('intro-arrived');
+  document.documentElement.classList.toggle('intro-returning', view === 'intro' && introReturnMotion);
+  introReturnMotion = false;
   document.querySelectorAll('[data-nav]').forEach(el => el.classList.toggle('on', el.dataset.nav === view));
   // 전문가 콘솔은 상단바가 다르다: 일반 그룹 ↔ 전문가 그룹 전환. 일반 상단바의 "전문가 모드" 칩은 설정이 켜져 있을 때만.
   const expert = view === 'expert';
@@ -142,7 +162,7 @@ function setActiveNav(view) {
 }
 // 최상위 화면은 주소(#records·#settings·#expert)에 둔다 → 브라우저 뒤로가기가 앱 안에서 동작한다.
 // 진단 중에 다른 화면에 갔다 돌아오면 하던 진단으로, 진단 화면에서 "홈"을 한 번 더 누르면 진짜 홈으로.
-const viewFromHash = () => ['records', 'settings', 'expert'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
+const viewFromHash = () => ['records', 'settings', 'expert', 'intro'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
 function route(view) {
   // 'back' = 닫기(✕·Esc): 전문가 콘솔에서 들어온 기록·설정은 콘솔로, 나머지는 홈(진단 중이면 하던 진단)으로
   if (view === 'back') view = state.view !== 'expert' && state.cameFrom === 'expert' && isExpertOn() ? 'expert' : 'home';
@@ -151,6 +171,7 @@ function route(view) {
   location.hash = view === 'home' ? '' : view;
 }
 function render(view, again = false) {
+  if (view === 'intro') return showIntro();
   if (view === 'records') return showRecords();
   if (view === 'settings') return showSettings();
   if (view === 'expert') return showExpert();
@@ -163,13 +184,13 @@ window.addEventListener('hashchange', () => render(viewFromHash()));
 const syncTopPill = () => { if (state.status) setStatusPill(state.status.status_pill); paintTopIsp(); };
 
 export async function showHome(check = autoScanEnabled()) {
+  if (shouldShowIntro()) return showIntro();
   setActiveNav('home');
   const visit = viewVersion;
   clearTimeout(state.timer); state.session = null; state.selectedAnswer = null;
   // 자동 점검 OFF로 화면만 오간 경우, 사용자가 직접 확인한 결과와 시각은 그대로 둔다.
-  if (!check && state.status && state.checkedAt !== null) { paintHome(); maybeShowIntro(); return; }
+  if (!check && state.status && state.checkedAt !== null) { paintHome(); return; }
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
-  maybeShowIntro();   // 홈 진입 즉시 판단한다. 느린 응답 뒤 다른 화면 위에 안내가 뜨지 않게.
   try {
     const status = await getStatus(check);
     if (visit !== viewVersion) return;
@@ -181,13 +202,42 @@ export async function showHome(check = autoScanEnabled()) {
   state.checkedAt = check ? Date.now() : null;
   paintHome();
 }
-function maybeShowIntro() {
-  if (state.view !== 'home' || state.session || $('#sheet').open) return;
+async function showIntro() {
+  setActiveNav('intro'); clearTimeout(state.timer);
+  const visit = viewVersion, page = $('#intro-page');
+  page.classList.remove('intro-ready');
+  page.innerHTML = firstPage({ autoScan: autoScanEnabled(), demo: demoMode });
+  window.scrollTo(0, 0);
+  // 표지를 여는 경우에만 SUITE를 준비한다. 제목이 대체 글꼴에서 뒤늦게 바뀌는 흔들림을 막는다.
+  try { await document.fonts.load('500 64px "SUITE Variable"'); } catch { /* 로컬 글꼴을 못 읽으면 Gothic A1 대체 글꼴로 표시 */ }
+  if (visit !== viewVersion) return;
+  page.classList.add('intro-ready');
+}
+async function startFromIntro() {
+  if (state.view !== 'intro' || introLeaving) return;
+  introLeaving = true;
+  const visit = viewVersion, page = $('#intro-page'), button = $('[data-event="intro_start"]');
+  button.disabled = true;
+  const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches && typeof page.animate === 'function';
   try {
-    if (localStorage.getItem(INTRO_KEY)) return;
-    localStorage.setItem(INTRO_KEY, '');   // 저장 가능 여부만 확인. '봤음'은 닫을 때 기록한다.
-    onEvent('intro');
-  } catch { /* 저장 불가면 자동 안내를 띄우지 않는다. 설정의 다시 보기는 사용 가능. */ }
+    if (motion) {
+      document.documentElement.classList.add('intro-leaving');
+      introAnimation = page.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.10)' }], { duration: 260, easing: 'cubic-bezier(.55,0,.8,.35)', fill: 'forwards' });
+      try { await introAnimation.finished; } catch { /* 다른 화면으로 이동하며 취소된 경우는 아래 진입 번호로 확인한다. */ }
+    }
+    if (visit !== viewVersion) return;
+    introDismissed = true;
+    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* 저장 불가여도 이번 방문에서는 홈으로 간다. */ }
+    // hashchange에서 홈을 그린 뒤에 전환 효과를 붙인다. 첫 자동 안내는 hashchange 없이 직접 그린다.
+    let home;
+    if (viewFromHash() === 'home') home = render('home');
+    else { route('home'); await new Promise(resolve => window.addEventListener('hashchange', resolve, { once: true })); }
+    if (motion && state.view === 'home') document.documentElement.classList.add('intro-arrived');
+    return home;
+  } finally {
+    introLeaving = false; button.disabled = false;
+    document.documentElement.classList.remove('intro-leaving');
+  }
 }
 // "N초 전"이 실제로 흐르게 15초마다 다시 그린다 (홈에 머무는 동안만)
 function paintHome() {
@@ -203,9 +253,10 @@ function paintHome() {
 const paintRecords = () => { const y = window.scrollY; paint({ rail: recordsRailHTML(state.records.rail), stage: recordsStageHTML(state.records, state.recordsOpen, demoMode) }, 'records'); window.scrollTo(0, y); };
 export async function showRecords() {
   setActiveNav('records'); clearTimeout(state.timer); syncTopPill();
+  const visit = viewVersion;
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
-  try { state.records = await getRecords(); }
-  catch (e) { showError('#stage', new Error(`기록을 불러오지 못했어요: ${e.message}`), showRecords); return; }
+  try { const records = await getRecords(); if (visit !== viewVersion) return; state.records = records; }
+  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`기록을 불러오지 못했어요: ${e.message}`), showRecords); return; }
   state.recordsOpen = state.records.records[0]?.id ?? null;   // 첫 행은 펼쳐 놓는다 (Figma)
   paintRecords();
 }
@@ -226,9 +277,10 @@ const isExpertOn = () => { try { return !!JSON.parse(localStorage.getItem(SETTIN
 const paintSettings = () => paint({ rail: settingsRailHTML(state.settings, state.settingsActive), stage: settingsStageHTML(state.settings, state.settingsValues, demoMode) }, 'settings');
 export async function showSettings() {
   setActiveNav('settings'); clearTimeout(state.timer); syncTopPill();
+  const visit = viewVersion;
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
-  try { state.settings = await getSettings(); }
-  catch (e) { showError('#stage', new Error(`설정을 불러오지 못했어요: ${e.message}`), showSettings); return; }
+  try { const settings = await getSettings(); if (visit !== viewVersion) return; state.settings = settings; }
+  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`설정을 불러오지 못했어요: ${e.message}`), showSettings); return; }
   state.settingsValues = loadSettingsValues(state.settings);
   state.settingsActive = state.settings.sections[0].id;
   paintSettings();
@@ -319,14 +371,17 @@ function applyKgLabels() {
 const loadKg = async () => (state.kg ??= await getKg());
 export async function showExpert() {
   setActiveNav('expert'); clearTimeout(state.timer);
+  const visit = viewVersion;
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
-  try { state.expert = await getExpert(state.session?.session_id); }
+  try { const expert = await getExpert(state.session?.session_id); if (visit !== viewVersion) return; state.expert = expert; }
   catch (e) {
+    if (visit !== viewVersion) return;
     if (e.status === 404) return sessionLost(() => route('home'));   // /expert도 세션이 없으면 404 (주소가 #expert라 홈은 route로)
     showError('#stage', new Error(`전문가 콘솔을 불러오지 못했어요: ${e.message}`), showExpert); return;
   }
   state.kgErr = null;
   if (state.expert.path) await loadKg().catch(e => { state.kgErr = e.message; });
+  if (visit !== viewVersion) return;
   paintExpert();
 }
 const leaveExpert = () => route('home');
@@ -340,6 +395,7 @@ function expertOff() {
 }
 
 export function showScreen(raw) {
+  if (state.view === 'intro') return;
   const payload = localize(raw);
   setStatusPill(payload.status_pill);
   const render = SCREENS[payload.screen];
@@ -364,6 +420,7 @@ export async function send(event, value = null) {
   state.busy = true;
   try { const r = await advance(state.session.session_id, event, value); state.session = r; state.selectedAnswer = null; showScreen(r.payload); }
   catch (e) {
+    if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
     showError('#stage', new Error(`진행하지 못했어요: ${e.message}`), () => state.session ? showScreen(state.session.payload) : showHome());
   }
@@ -380,16 +437,17 @@ async function start() {
   clearTimeout(state.timer);
   $('#stage').innerHTML = '<p class="state">진단 예시를 시작하는 중…</p>';
   try { state.session = await startDiagnosis(scenario); showScreen(state.session.payload); }
-  catch (e) { showError('#stage', new Error(`진단을 시작하지 못했어요: ${e.message}`), showHome); }
+  catch (e) { if (state.view !== 'intro') showError('#stage', new Error(`진단을 시작하지 못했어요: ${e.message}`), showHome); }
   finally { state.starting = false; }
 }
 
 // 끝내기: 서버 세션을 닫는 걸 기다린 뒤 홈으로. 종료 응답은 다시 그리지 않는다 (경쟁 방지).
 async function finish(then = 'home') {
-  const sid = state.session?.session_id;
+  const sid = state.session?.session_id, visit = viewVersion;
   if (sid) { try { await advance(sid, 'finish'); } catch (e) { /* 세션 종료 실패는 무시하고 나간다 */ } }
   state.session = null;
   state.checkedAt = null;   // 완료 뒤에는 최신 기록을 다시 받는다(자동 점검 OFF도 기록은 갱신).
+  if (visit !== viewVersion) return;
   return route(then);
 }
 
@@ -403,7 +461,7 @@ document.addEventListener('keydown', e => {
   e.preventDefault(); selectKg(all[Math.max(0, Math.min(all.length - 1, to))].dataset.kg, { focus: true });
 });
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || state.view === 'home' || $('#sheet').open) return;   // 시트가 열려 있으면 Esc는 시트만 닫는다
+  if (e.key !== 'Escape' || state.view === 'home' || state.view === 'intro' || $('#sheet').open) return;   // 시트가 열려 있으면 Esc는 시트만 닫는다
   route('back');
 });
 
@@ -416,7 +474,13 @@ document.addEventListener('click', e => {
     if (kgDragged === el && e.detail) { kgDragged = null; return; }
     return void selectKg(el.dataset.kg, { focus: true, reveal: !el.closest('#stage') });   // 로그(왼쪽)의 id를 눌렀으면 카드를 화면에 보이게
   }
-  if (el.dataset.nav) return void route(el.dataset.nav);
+  if (el.dataset.nav) {
+    if (el.dataset.nav === 'intro') {
+      if (state.view === 'intro') return;
+      introReturnMotion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return void route(el.dataset.nav);
+  }
   if (el.dataset.expertOff !== undefined) return void expertOff();
   // 기록 아코디언: 같은 행을 다시 누르면 접기
   if (el.dataset.rec) { state.recordsOpen = state.recordsOpen === el.dataset.rec ? null : el.dataset.rec; return paintRecords(); }
@@ -462,8 +526,8 @@ const exportLog = () => download(`homenet-expert-${stamp()}.json`, JSON.stringif
 function exportReport() {
   const x = state.expert, rows = l => l.rows.map(r => `  ${r.label}: ${r.value}`).join('\n');
   download(`homenet-report-${stamp()}.txt`, [
-    '홈넷 진단 도우미 — 진단 리포트', `${x.topbar.model} · ${x.topbar.kg}`, '',
-    `판정: ${x.verdict.pill.text} — ${x.verdict.title}`, `근거: ${x.verdict.chain.map(c => c.text).join(' → ')}`, `(${x.verdict.meta})`, '',
+    '홈넷 진단 리포트', `${x.topbar.model} · ${x.topbar.kg}`, '',
+    `판정: ${x.verdict.pill.text}: ${x.verdict.title}`, `근거: ${x.verdict.chain.map(c => c.text).join(' → ')}`, `(${x.verdict.meta})`, '',
     `연결 경로: ${x.topology.conclusion.text}`, '', `${x.candidates.title}\n${rows(x.candidates)}`, '', `${x.measurements.title} (${x.measurements.meta})\n${rows(x.measurements)}`, '',
     `${x.log.title} ${x.log.range}`, ...x.log.entries.map(e => `  ${e.time} [${e.tag}] ${e.text}`),
   ].join('\n'), 'text/plain');
@@ -473,25 +537,18 @@ async function exportRecords() {
   catch (e) { showError('#stage', new Error(`기록을 내보내지 못했어요: ${e.message}`), () => route(state.view)); }
 }
 // 시트: 브라우저 기본 <dialog> (Esc·포커스 가두기는 브라우저가 해준다). wide = 그림 시트(KG)
-function openSheet(title, body, wide = false, intro = false) { const d = $('#sheet'); d.innerHTML = sheetHTML(title, body); d.classList.toggle('wide', wide); d.classList.toggle('intro', intro); d.showModal(); }
-$('#sheet').addEventListener('close', () => {
-  if ($('#sheet').classList.contains('intro')) {
-    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* 저장 불가 */ }
-  }
-});
-$('#sheet').addEventListener('click', e => {
-  const d = $('#sheet'); if (e.target !== d || !d.classList.contains('intro')) return;
-  const b = d.getBoundingClientRect();
-  if (e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) d.close();
-});
+function openSheet(title, body, wide = false) { const d = $('#sheet'); d.innerHTML = sheetHTML(title, body); d.classList.toggle('wide', wide); d.showModal(); }
 // 일반 모드 "어떻게 알아냈는지 그림으로 보기": KG + 지금 진단의 경로(/expert의 path) → 4칸 그림 + 번호 목록
 async function openKgSheet(label) {
   if (state.sheetBusy || $('#sheet').open) return;   // 두 번 눌러도 시트는 하나
   state.sheetBusy = true;
+  const visit = viewVersion;
   try {
     const [kg, x] = await Promise.all([loadKg(), getExpert(state.session?.session_id)]);
+    if (visit !== viewVersion) return;
     openSheet(kg.meta.text.plain_title, kgGeneralHTML(kg, x.path ?? []), true);
   } catch (e) {
+    if (visit !== viewVersion) return;
     if (e.status === 404) return sessionLost();            // 시트에 "세션 … 없음"(id)을 띄우는 대신 send()와 같은 안내
     openSheet(label, `<p class="state err" role="alert">그림을 불러오지 못했어요: ${esc(e.message)}</p>`, true);
   } finally { state.sheetBusy = false; }
@@ -508,7 +565,8 @@ export function onEvent(event, el) {
     case 'export_report': return exportReport();
     case 'export_records': return exportRecords();
     case 'close_sheet': return $('#sheet').close();
-    case 'intro': return openSheet('홈넷 진단 도우미 사용법', introHTML({ demo: demoMode, autoscan: autoScanEnabled() }), false, true);
+    case 'intro': return route('intro');
+    case 'intro_start': return startFromIntro();
     case 'led_guide': return openSheet('인터넷 표시등은 여기 있어요', ledGuideHTML());
     case 'kg_general': return openKgSheet(el.textContent);
     case 'demo_help': { const t = document.getElementById('demo-help'); return t && openSheet(t.dataset.title, t.innerHTML); }   // 데모 빌드만(build-static.py가 <template>을 넣는다)

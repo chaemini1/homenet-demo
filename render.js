@@ -24,9 +24,19 @@ export function pathCardHTML(p) {
   </section>`;
 }
 export const metricRowHTML = m => `<div class="metric ${tone(m.status)}"><span class="k">${esc(m.label)}</span><span class="v">${m.before ? `<span class="was"><span class="sr">이전 값 </span>${esc(m.before)}</span><span class="arrow" aria-hidden="true">→</span><span class="sr">지금 </span>` : ''}${esc(m.value)}</span>${dotHTML(m.status, true)}</div>`;
+// 근거 출처: 행에 sources가 있을 때만 그 행 바로 아래에 그린다. 응답에서 온 주소라 https://만 링크로 만든다.
+const SOURCE_KIND = { official: '공식 문서 요약', applied: '프로젝트 적용' };
+const sourceHTML = s => {
+  const name = /^https:\/\//.test(s.url ?? '')
+    ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.label)}<span class="sr"> (새 탭에서 열림)</span></a>`
+    : `<span>${esc(s.label)}</span>`;
+  return `<li><span class="msrc-kind">${esc(SOURCE_KIND[s.kind] ?? s.kind)}</span>${name}</li>`;
+};
+const sourcesHTML = list => list?.length ? `<ul class="msrc" aria-label="근거 출처">${list.map(sourceHTML).join('')}</ul>` : '';
 export function metricListHTML(l) {
   const meta = l.meta ? `<span>${esc(l.meta)}</span>` : '';
-  return `<div class="mlist"><div class="mhead"><b>${esc(l.title)}</b>${meta}</div>${l.rows.map(metricRowHTML).join('')}</div>`;
+  const note = l.rows.some(m => m.sources?.length) ? '<p class="msrc-note">출처는 참고용이에요. 실제 측정 결과와는 별개예요.</p>' : '';
+  return `<div class="mlist"><div class="mhead"><b>${esc(l.title)}</b>${meta}</div>${l.rows.map(m => metricRowHTML(m) + sourcesHTML(m.sources)).join('')}${note}</div>`;
 }
 export function stepperHTML(steps) {
   return `<div class="stepper">${steps.map(s => `<div class="step-item ${esc(s.state)}"><div class="marker">${s.state === 'done' ? '✓' : ''}</div><div><div class="lab">${esc(s.label)}</div>${s.answer ? `<div class="ans">${esc(s.answer)}</div>` : ''}</div></div>`).join('')}</div>`;
@@ -354,29 +364,43 @@ export function kgGeneralHTML(kg, path = []) {
 // ==== 시트(<dialog>): 라이선스 목록, 표시등 위치 그림 ====
 export const sheetHTML = (title, body) => `<div class="chead big"><b id="sheet-title">${esc(title)}</b><div class="spacer"></div><button type="button" class="iconbtn" data-event="close_sheet" aria-label="닫기">✕</button></div>${body}`;
 export const licensesHTML = items => `<div class="lic">${items.map(i => `<div class="metric ok"><span class="k">${esc(i.name)}<small>${esc(i.use)}</small></span><span class="v">${esc(i.license)}</span></div>`).join('')}</div>`;
-// 공유기 그림: 안테나 2개 + 본체(윗면·앞면) + 앞면의 아이콘과 표시등. 기종 공통으로 "보통 이렇게 생겼다"까지만 말한다. 사진이 생기면 <img>로 교체.
-// 사용법은 고정 안내 문구. 두 모드 모두 예시이며 저장·전송 방식과 자동 확인 설정에 맞춰 설명한다.
-const INTRO = {
-  can: [['인터넷이 지나가는 길을 보여 드려요', '내 컴퓨터부터 인터넷까지 여섯 구간의 예시 상태를 봐요'],
-        ['집 안 문제의 조치 순서를 보여 드려요', '공유기 다시 켜기처럼 직접 할 수 있는 일을 한 단계씩'],
-        ['집 밖 문제의 기다림 화면을 보여 드려요', '고객센터 안내와 예시 상태를 다시 확인하는 흐름을 봐요']],
-};
-export function introHTML({ demo = false, autoscan = true } = {}) {
-  const li = ([b, s]) => `<li><b>${esc(b)}</b><span>${esc(s)}</span></li>`;
+// 첫 페이지는 고정 안내 문구. 실제 자동 점검 설정과 서버/정적 데모 모드에 맞춰 설명한다.
+export function firstPage({ autoScan = true, demo = false } = {}) {
   const how = [
-    autoscan ? ['앱을 열면 예시 상태를 자동으로 확인해요', '실제 측정 결과가 아닌 예시가 홈 그림에 나와요']
-      : ['홈에서 예시 상태를 직접 확인해요', "'지금 확인하기'를 누르면 예시를 불러와요"],
-    ["'문제가 있어요, 진단 시작'을 눌러요", '문제 원인과 조치의 예시 흐름을 살펴봐요'],
-    ['질문이 나오면 답을 고르고 다음을 눌러요', '공유기 표시등 같은 질문을 거쳐 다음 단계로 가요'],
+    autoScan ? ['앱을 열면 자동으로 한 번 확인해요', '결과는 홈 맨 위 그림에 나와요. 설정에서 끌 수 있어요.']
+      : ["홈에서 '지금 확인하기'를 눌러요", '자동 점검을 꺼 두었어요. 설정에서 다시 켤 수 있어요.'],
+    ["'문제가 있어요, 진단 시작'을 눌러요", '어디서 막혔는지 여섯 구간을 차례로 확인해요.'],
+    ['질문에 답하면, 다음 할 일이 보여요', "답을 고르고 '다음'을 눌러요. 기기가 잴 수 없는 것만 물어봐요."],
   ];
-  const privacy = demo ? '답과 설정은 외부로 전송하지 않아요. 기록은 새로고침하면 초기화돼요.'
-    : '답은 시연용 서버로 보내요. 기록은 접속자끼리 공유되며 서버 재시작 시 초기화돼요.';
-  return `<div class="intro-body" role="region" aria-label="사용법 내용" tabindex="0"><p class="intro-lead">현재는 실제 장비를 측정하지 않고 예시 데이터로 진단 흐름을 보여 드려요.</p>`
-    + `<h3 class="intro-h">할 수 있는 것</h3><ul class="kg-list intro-list">${INTRO.can.map(li).join('')}</ul>`
-    + `<h3 class="intro-h">쓰는 법</h3><ol class="kg-list intro-list">${how.map(li).join('')}</ol></div>`
-    + `<div class="actions intro-actions"><p class="foot">${esc(privacy)}</p><button type="button" class="btn pri" data-event="close_sheet">시작하기</button></div>`;
+  const privacy = demo ? '고른 답과 설정은 이 브라우저 밖으로 보내지 않아요. 기록은 새로고침하면 처음 상태로 돌아가요.'
+    : '고른 답은 시연용 서버로 보내요. 기록은 같은 서버에 접속한 사람과 함께 보이고, 서버를 다시 켜면 처음 상태로 돌아가요.';
+  return `<div class="first-page-screen">
+    <header class="first-header"><div><button type="button" class="first-brand" data-nav="intro" title="첫 페이지로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7M6 9v11h12V9M10 20v-6h4v6"/></svg>홈넷 진단 도우미</button></div></header>
+    <main>
+      <section class="intro-cover" aria-labelledby="first-title">
+        <div class="network-hero first-page">
+          <div class="network-copy">
+            <p class="network-eyebrow">집 안부터, 집 밖까지.</p>
+            <h1 id="first-title" tabindex="-1"><span>끊긴 인터넷,</span><span>어디가 문제일까요?</span></h1>
+            <p class="network-description"><span class="desktop-copy">집 안 문제면 직접 고치는 순서를,<br>집 밖 문제면 기다릴지 연락할지 알려 드려요.</span><span class="mobile-copy">집 안은 고치는 순서를,<br>집 밖은 기다릴지 연락할지 알려 드려요.</span></p>
+            <div class="hero-actions"><button type="button" class="btn pri" data-event="intro_start">시작하기<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button></div>
+            <p class="copy-note">지금은 예시 데이터로 진단 흐름을 보여 드려요.</p>
+          </div>
+          <figure class="network-art"><img src="first-page/signal-cable.webp" width="1448" height="1086" fetchpriority="high" alt="부드럽게 흐르는 케이블 선들 사이, 한 곳의 끊김을 강조한 연결 진단 이미지"></figure>
+        </div>
+      </section>
+      <div class="first-page">
+        <section class="how" aria-labelledby="how-title">
+          <h2 class="how-title" id="how-title">복잡한 연결을, 하나씩 좁혀요.</h2>
+          <ol class="how-steps">${how.map(([title, description], i) => `<li><span class="step-number" aria-hidden="true">0${i + 1}</span><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div></li>`).join('')}</ol>
+        </section>
+        <footer class="first-footer"><p>지금은 미리 준비한 값으로 진단 흐름을 보여 줘요. 실제 장비를 재지 않아요.</p><p>${esc(privacy)}</p><p>처음 한 번만 보여요. 설정 → 정보 → 사용법에서 다시 볼 수 있어요.</p></footer>
+      </div>
+    </main>
+  </div>`;
 }
 
+// 공유기 그림: 안테나 2개 + 본체(윗면·앞면) + 앞면의 아이콘과 표시등. 기종 공통으로 "보통 이렇게 생겼다"까지만 말한다. 사진이 생기면 <img>로 교체.
 export function ledGuideHTML() {
   const ink = 'fill:none;stroke:var(--text-muted);stroke-width:1.6;stroke-linecap:round';
   const ICON = {

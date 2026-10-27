@@ -1,4 +1,5 @@
-@import url("tokens.css?v=4906ac10");
+@import url("tokens.css?v=5130f5ab");
+@import url("first-page.css?v=5130f5ab");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -54,7 +55,7 @@ button:disabled{cursor:default;opacity:.45}
 .body{display:flex;flex:1;min-height:0}
 .rail{display:flex;flex-direction:column;gap:var(--space-2);width:400px;flex:none;padding:var(--space-6) var(--space-7);background:var(--bg-surface);border-right:1px solid var(--border-subtle)}
 .rail{position:relative;transition:width .18s}
-.rail .lbl{font-size:13.5px;color:var(--text-muted)}
+.rail .lbl{font-size:15.5px;color:var(--text-muted)}
 /* 전문가 콘솔의 추론 로그: 사이드바처럼 접고 편다 (접으면 56px 띠 + 세로 이름) */
 .rail-toggle{position:absolute;top:var(--space-4);right:var(--space-4);width:32px;height:32px;font-size:18px}
 .rail-log{display:flex;flex-direction:column;gap:var(--space-2);flex:1;min-height:0} .rail .log .lhead{padding-right:40px}
@@ -67,27 +68,34 @@ button:disabled{cursor:default;opacity:.45}
 .stage .spacer{flex:1}
 
 /* ---- 레일: 홈 정보 · SLM 패널 · 노트 · 스테퍼 ---- */
-.metric{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:13.5px;color:var(--text-secondary)}
+.metric{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:16px;color:var(--text-secondary)}
 .metric .k{flex:1;min-width:0}
-.metric .v{font:700 12px/1.5 var(--font-mono);white-space:nowrap}
+.metric .v{font:700 15px/1.5 var(--font-mono);white-space:nowrap}
 .metric.ok .v{color:var(--success)} .metric.warn .v{color:var(--warning)} .metric.bad .v{color:var(--critical)}
 .metric.unknown .v{color:var(--text-muted)} .metric.checking .v{color:var(--accent)}
 .mlist .mhead{display:flex;justify-content:space-between;padding-bottom:var(--space-2);font-size:13px}
 .mlist .mhead b{font-weight:600;color:var(--text-primary)} .mlist .mhead span{font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
+/* 근거 출처 줄: 행과 한 덩어리로 보이게 행의 밑줄을 출처 줄 아래로 옮긴다. 구분은 색이 아니라 글자(공식 문서 요약/프로젝트 적용)로 */
+.metric:has(+ .msrc){border-bottom:0}
+.msrc{list-style:none;margin:0;padding:0 0 var(--space-2);border-bottom:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:2px;font-size:14px;line-height:1.5;color:var(--text-secondary);word-break:keep-all}
+.msrc li{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-height:24px;min-width:0}
+.msrc-kind{flex:none;font-size:13px;color:var(--text-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 6px}
+.msrc a{display:inline-flex;align-items:center;min-height:24px;min-width:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.msrc-note{margin:var(--space-2) 0 0;font-size:14px;color:var(--text-muted)}
 .slm{display:flex;flex-direction:column;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--bg-input);width:100%}
 .slm .head{display:flex;align-items:center;padding-bottom:var(--space-2)}
 .slm .head .t{font:400 13px/1.5 var(--font-mono);color:var(--text-primary);width:43px}
 .note{display:flex;flex-direction:column;gap:var(--space-1)}
-.note .row{display:flex;align-items:center;gap:var(--space-2);font-size:13px;font-weight:600}
-.note p{margin:0;font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
+.note .row{display:flex;align-items:center;gap:var(--space-2);font-size:15px;font-weight:600}
+.note p{margin:0;font:400 15px/1.5 var(--font-mono);color:var(--text-secondary)}
 .stepper{display:flex;flex-direction:column}
 .step-item{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-2) 0}
 .step-item .marker{width:20px;height:20px;border-radius:50%;flex:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font:700 12px/1 var(--font-mono)}
 .step-item.current .marker{border-color:var(--accent)} .step-item.current .marker::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .step-item.done .marker{background:var(--success);border-color:var(--success);color:var(--text-on-accent)}
-.step-item .lab{font-size:13px;font-weight:600;color:var(--text-muted)}
+.step-item .lab{font-size:16px;font-weight:600;color:var(--text-muted)}
 .step-item.current .lab,.step-item.done .lab{color:var(--text-primary)}
-.step-item .ans{font-size:13.5px;color:var(--text-secondary)} .step-item.todo .ans{color:var(--text-muted)}
+.step-item .ans{font-size:16px;color:var(--text-secondary)} .step-item.todo .ans{color:var(--text-muted)}
 
 /* ---- 무대: PathCard ---- */
 .card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-5) var(--space-6);display:flex;flex-direction:column;gap:var(--space-3);width:100%}
@@ -100,11 +108,11 @@ button:disabled{cursor:default;opacity:.45}
 .seg.bad .box{background:var(--critical-bg);border-color:var(--critical);color:var(--text-primary)}
 .seg.unknown .box{border:1px solid var(--border-strong);color:var(--text-muted)}
 .seg.checking .box{background:var(--accent-bg);border:1.5px dashed var(--accent);color:var(--accent)}
-.seg .lab{font:400 13px/1.5 var(--font-mono);color:var(--text-secondary);text-align:center;white-space:nowrap}
+.seg .lab{font:400 15.5px/1.5 var(--font-mono);color:var(--text-secondary);text-align:center;white-space:nowrap}
 .seg.unknown .lab{color:var(--text-muted)}
 .segdiv{width:1px;height:40px;background:var(--border-strong);flex:none}
-.partition{display:flex;gap:var(--space-2);font:400 13px/1.5 var(--font-mono)}
-.partition .home{flex:4;text-align:center;color:var(--text-secondary)} .partition .out{flex:2;text-align:center;color:var(--text-muted)}
+.partition{display:flex;gap:var(--space-2);font:400 15px/1.5 var(--font-mono)}
+.partition .home{flex:4;text-align:center;color:var(--text-secondary)} .partition .out{flex:2;text-align:center;color:var(--text-secondary)}
 .conclusion{display:flex;align-items:center;gap:var(--space-2);padding-top:var(--space-1)}
 .conclusion p{margin:0;max-width:680px;font-size:15px}
 
@@ -124,8 +132,8 @@ button:disabled{cursor:default;opacity:.45}
 .step .num{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:700 12px/1 var(--font-mono);background:var(--accent-bg);color:var(--accent)}
 .step.done .num{background:var(--success);color:var(--text-on-accent)} .step.failed .num{background:var(--critical-bg);color:var(--critical)}
 .step.upcoming .num{background:var(--bg-input);color:var(--text-secondary)}
-.step .t{font-size:14px} .step.upcoming .t{color:var(--text-secondary)}
-.step .h{font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
+.step .t{font-size:16px} .step.upcoming .t{color:var(--text-secondary)}
+.step .h{font:400 15.5px/1.5 var(--font-mono);color:var(--text-secondary)}
 .step .confirm{display:flex;gap:var(--space-2)}
 .step .confirm button{width:100px;height:44px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-secondary)}
 .step.todo .confirm .yes{background:var(--accent);border-color:var(--accent);color:var(--text-on-accent)}
@@ -216,7 +224,7 @@ button:disabled{cursor:default;opacity:.45}
 .tag{flex:none;min-width:34px;text-align:center;padding:1px 6px;border-radius:var(--radius-sm);font:700 11px/1.6 var(--font-mono);background:var(--bg-input);color:var(--text-secondary)}
 .tag.ok{background:var(--success-bg);color:var(--success)} .tag.warn{background:var(--warning-bg);color:var(--warning)} .tag.checking{background:var(--accent-bg);color:var(--accent)}
 .logrow .lx{flex:1;min-width:0;font:400 13px/1.5 var(--font-mono);color:var(--text-secondary);overflow-wrap:anywhere}
-.seg .cap{font:400 12px/1.5 var(--font-mono);color:var(--text-muted);text-align:center;white-space:nowrap} .seg.bad .cap{color:var(--critical)}
+.seg .cap{font:400 14.5px/1.5 var(--font-mono);color:var(--text-muted);text-align:center;white-space:nowrap} .seg.bad .cap{color:var(--critical)}
 .seglink{flex:none;height:40px;display:flex;align-items:center;padding:0 var(--space-2);font:700 12px/1 var(--font-mono);color:var(--critical);white-space:nowrap}
 /* 전문가 연결 경로(topologyHTML): 칸 = 글리프 + 이름 + 측정값, 칸 사이 선. 상태는 테두리 색 + 글리프 + 글자(색만으로 구분하지 않음) */
 .tchain{display:flex;align-items:center;width:100%}
@@ -241,12 +249,6 @@ button:disabled{cursor:default;opacity:.45}
 .sheet::backdrop{background:rgba(0,0,0,.6)}
 .sheet .chead.big{margin-bottom:var(--space-4)}
 .sheet .lic{margin-top:var(--space-3)} .sheet .k small{display:block;color:var(--text-muted);font-size:12px}
-/* 사용법: 내용만 스크롤해 닫기·시작하기가 작은 화면에서도 남게 한다. */
-.sheet.intro[open]{display:flex;flex-direction:column;gap:var(--space-4);max-height:80dvh;overflow:hidden}
-.sheet.intro > .chead{flex:none;margin-bottom:0}
-.intro-body{min-height:0;overflow:auto;overscroll-behavior:contain}
-.sheet.intro .intro-actions{flex:none}
-.intro-actions .foot{flex:1;min-width:0}
 
 /* ---- KG 그래프 (전문가 카드 · 일반 시트): 상태색 면 + 글리프 + 글자. 글로우·그림자·그라데이션·움직임 없음 ---- */
 /* --ink = 상태색 한 곳 매핑 (노드 면, 경로 선, 화살촉) */
@@ -304,9 +306,6 @@ button:disabled{cursor:default;opacity:.45}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}
-.intro-lead{margin:0;font-size:15px;line-height:1.6;color:var(--text-secondary)}
-.intro-h{margin:var(--space-4) 0 0;font-size:13px;font-weight:600;color:var(--text-muted)}
-.sheet .intro-list{margin:var(--space-2) 0 0} .intro-list span{display:block;color:var(--text-secondary);font-size:13px}
 .kg-list{margin:var(--space-4) 0 var(--space-3);padding-left:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);font-size:14px;line-height:1.6}
 /* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
 #stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
@@ -348,6 +347,7 @@ button:disabled{cursor:default;opacity:.45}
   .topbar .spacer{display:none}
   .body{flex-direction:column}
   .stage{order:1;min-width:0;padding:var(--space-5) var(--space-4)}
+  .stage:has(.actions.home-cta){gap:var(--space-3);padding-top:var(--space-2)}
   .rail,.rail.collapsed{order:2;width:auto;flex:none;align-items:stretch;padding:var(--space-4);border-right:0;border-top:1px solid var(--border-subtle)}
   .rail.collapsed .rail-vlabel{writing-mode:horizontal-tb;margin:0;letter-spacing:0}
   .rail-toggle{top:var(--space-3);right:var(--space-3)} .rail.collapsed .rail-toggle{position:absolute}
@@ -355,9 +355,10 @@ button:disabled{cursor:default;opacity:.45}
   .detail{flex-direction:column}
   .segments{overflow-x:auto} .tchain{overflow-x:auto;padding-top:var(--space-3)} .tnode{min-width:120px}
   .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0} .actions.home-cta .btn{flex-basis:100%}   /* 둘이 한 줄이면 진단 시작 글자가 잘림 → 버튼마다 한 줄 */
+  .actions .foot{flex-basis:100%} .actions .spacer{display:none}   /* 각주가 버튼과 한 줄에 남으면 버튼(기본 폭 0)이 남은 50px로 눌린다 → 각주는 위 한 줄, 버튼은 아래 줄을 나눠 씀 */
+  .actions .btn.pri[data-event="recheck"]{height:auto;min-height:52px;padding-block:var(--space-3);line-height:1.35;white-space:normal;text-align:center}
   .kg-pc{grid-template-columns:1fr 1fr} .kg-panel{height:auto;max-height:none} .kg-pc > div{max-height:160px}
   .sheet,.sheet.wide{width:calc(100vw - 24px);padding:var(--space-4)}
-  .intro-actions .foot{flex-basis:100%}
   .kg .chead{flex-wrap:wrap;row-gap:var(--space-2)} .kg .chead .spacer{display:none} .kg-ph{flex-wrap:wrap} .kg-view{margin-left:auto}   /* 카드 머리·패널 머리는 줄바꿈(글자가 한 글자씩 세로로 쪼개지지 않게) */
   .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 시트가 좌우로 스크롤된다 */
   .rec-head{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"when result" "cause toggle" "fix fix";gap:var(--space-2) var(--space-3)}
