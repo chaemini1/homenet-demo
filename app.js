@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=25e15d1d';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=25e15d1d';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=1253c0e1';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=1253c0e1';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -323,6 +323,7 @@ function selectKg(id, { focus = false, reveal = false } = {}) {
   $('#kg-panel').innerHTML = kgPanelHTML(state.kg, id, state.expert.path, state.expert.log.entries);
   if (focus) n.focus({ preventScroll: true });
   if (reveal) $('#stage .kg').scrollIntoView({ block: 'nearest' });
+  if (focus || reveal) n.scrollIntoView({ block: 'nearest', inline: 'nearest' });   // 그래프 칸 안 스크롤에 가려진 노드도 보이게
 }
 // 수동 배치는 받은 KG의 메모리 좌표만 바꾼다. 보기 전환에도 유지, 새로고침하면 원래 배치. 클릭과 5px 이상 드래그를 구분한다.
 let kgDrag = null, kgDragged = null;

@@ -1,5 +1,5 @@
-@import url("tokens.css?v=25e15d1d");
-@import url("first-page.css?v=25e15d1d");
+@import url("tokens.css?v=1253c0e1");
+@import url("first-page.css?v=1253c0e1");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -257,7 +257,8 @@ button:disabled{cursor:default;opacity:.45}
 :is(.kg-e,.kg-ah).flow{--ink:var(--text-muted)}
 .kg .chead{align-items:center;gap:var(--space-3)}
 .kg-svg{display:block;width:100%;height:auto}
-.kg-scroll{overflow-x:auto} .kg-scroll > .kg-svg{min-width:800px;max-width:900px;margin-inline:auto}
+.kg-scroll{overflow:auto;max-height:min(560px,62vh);scrollbar-color:var(--text-muted) var(--bg-input)}   /* 그래프만 따로 스크롤: 범례·노드 설명이 화면 밖으로 밀려나지 않게 */
+.kg-scroll > .kg-svg{min-width:800px;max-width:900px;margin-inline:auto}
 .kg-e{fill:none;stroke:var(--ink,var(--border-strong));stroke-width:1;vector-effect:non-scaling-stroke} .kg-e.on{stroke-width:2} .kg-e.prop{stroke-dasharray:4 3}
 .kg-ah{fill:var(--ink,var(--border-strong))}
 .kg-scroll :is(.kg-e:not(.on),.kg-ah.ctx){--ink:var(--text-muted)} .kg-scroll .kg-e:not(.on){opacity:.9}
