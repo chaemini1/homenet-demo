@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=5130f5ab';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=5130f5ab';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=dd46186a';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=dd46186a';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -16,8 +16,8 @@ let introReturnMotion = false;
 function shouldShowIntro() {
   if (introDismissed) return false;
   try {
-    if (localStorage.getItem(INTRO_KEY)) return false;
-    localStorage.setItem(INTRO_KEY, '');   // 저장 가능 여부만 검사. '봤음'은 시작하기에서 저장한다.
+    if (sessionStorage.getItem(INTRO_KEY)) return false;   // '봤음'은 탭 단위: 새로 들어올 때마다 첫 페이지, 같은 탭 새로고침은 유지
+    sessionStorage.setItem(INTRO_KEY, '');   // 저장 가능 여부만 검사. '봤음'은 시작하기에서 저장한다.
     return true;
   } catch { return false; }
 }
@@ -227,7 +227,7 @@ async function startFromIntro() {
     }
     if (visit !== viewVersion) return;
     introDismissed = true;
-    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* 저장 불가여도 이번 방문에서는 홈으로 간다. */ }
+    try { sessionStorage.setItem(INTRO_KEY, '1'); } catch { /* 저장 불가여도 이번 방문에서는 홈으로 간다. */ }
     // hashchange에서 홈을 그린 뒤에 전환 효과를 붙인다. 첫 자동 안내는 hashchange 없이 직접 그린다.
     let home;
     if (viewFromHash() === 'home') home = render('home');
