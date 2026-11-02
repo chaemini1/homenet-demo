@@ -1,5 +1,5 @@
-@import url("tokens.css?v=dd46186a");
-@import url("first-page.css?v=dd46186a");
+@import url("tokens.css?v=25e15d1d");
+@import url("first-page.css?v=25e15d1d");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
