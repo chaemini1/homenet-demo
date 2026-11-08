@@ -1,8 +1,8 @@
-@import url("tokens.css?v=1253c0e1");
-@import url("first-page.css?v=1253c0e1");
+@import url("tokens.css?v=d3dcecc5");
+@import url("first-page.css?v=d3dcecc5");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 button:disabled{cursor:default;opacity:.45}
 .btn,.ghost,.iconbtn,.tab,.seg-opt,.answer{transition:background .15s,filter .15s,border-color .15s,transform .1s}
@@ -31,7 +31,7 @@ button:disabled{cursor:default;opacity:.45}
 /* ---- 셸 ---- */
 .app{display:flex;flex-direction:column;min-height:100vh}
 .topbar{display:flex;align-items:center;gap:var(--space-5);height:64px;padding:0 var(--space-7);background:var(--bg-surface);border-bottom:1px solid var(--border-subtle)}
-.brand{font-size:18px;font-weight:600;line-height:1.25;white-space:nowrap}
+.brand{min-height:24px;font-size:18px;font-weight:600;line-height:1.25;white-space:nowrap}   /* 클릭 영역 24px 이상 (WCAG 2.5.8) */
 .tabs{display:flex;gap:var(--space-2)}
 .tab{display:flex;align-items:center;height:44px;padding:0 var(--space-3);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text-secondary);text-decoration:none}
 .tab.on{background:var(--bg-input);color:var(--text-primary)}
@@ -45,7 +45,8 @@ button:disabled{cursor:default;opacity:.45}
 .topbar :is(.pill,.ghost,.tab,.status-pill){flex:none;white-space:nowrap}
 .demo-help{border:1px solid var(--border-strong);cursor:pointer} .demo-help:hover{background:var(--border-strong)}
 .topbar > .pill[role="note"]{display:block;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:1365px){.topbar{gap:var(--space-4)}}   /* 1280: 고객센터 번호가 버튼에 들어가며 준 여유를 되찾는다 — 칩이 꺼진 기본 상태에선 배지도 안 잘리게 */
+@media (max-width:1365px){.topbar{gap:var(--space-4)}}
+@media (max-width:1279px){.topbar > a[data-scenario]{display:none}}   /* 데모 전용 예시 링크: 901~1279px에서 상단바가 화면 밖으로 넘친다. 같은 링크가 데모 안내 시트에 있다 */   /* 1280: 고객센터 번호가 버튼에 들어가며 준 여유를 되찾는다 — 칩이 꺼진 기본 상태에선 배지도 안 잘리게 */
 #nav-expert .isp{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ghost{display:flex;align-items:center;height:44px;padding:0 var(--space-2);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text-secondary);text-decoration:none}
 .ghost:hover{background:var(--bg-input)}
@@ -68,9 +69,9 @@ button:disabled{cursor:default;opacity:.45}
 .stage .spacer{flex:1}
 
 /* ---- 레일: 홈 정보 · SLM 패널 · 노트 · 스테퍼 ---- */
-.metric{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:16px;color:var(--text-secondary)}
-.metric .k{flex:1;min-width:0}
-.metric .v{font:700 15px/1.5 var(--font-mono);white-space:nowrap}
+.metric{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:16px;color:var(--text-secondary)}
+.metric .k{flex:1 0 auto;min-width:0;max-width:100%}   /* 이름과 값이 한 줄에 안 들어가면 이름을 글자 단위로 누르지 않고 값을 다음 줄로 내린다 (11/7 값에 "좋음 (-47 dBm)"처럼 상태 낱말을 붙이며 길어짐) */
+.metric .v{margin-left:auto;font:700 15px/1.5 var(--font-mono);white-space:nowrap}
 .metric.ok .v{color:var(--success)} .metric.warn .v{color:var(--warning)} .metric.bad .v{color:var(--critical)}
 .metric.unknown .v{color:var(--text-muted)} .metric.checking .v{color:var(--accent)}
 .mlist .mhead{display:flex;justify-content:space-between;padding-bottom:var(--space-2);font-size:13px}
@@ -103,7 +104,7 @@ button:disabled{cursor:default;opacity:.45}
 .card .chead b{font-weight:600} .card .chead > span:not(.pill){font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}   /* pill(KG 카드 '출처 미확인')은 pill 모양 그대로 */
 .segments{display:flex;gap:var(--space-2);align-items:flex-start;width:100%}
 .seg{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:var(--space-1)}
-.seg .box{width:100%;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:var(--bg-surface);border:1.5px solid var(--success);color:var(--success)}
+.seg .box{width:100%;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;background:var(--bg-surface);border:1.5px solid var(--success);color:var(--success)}
 .seg.warn .box{background:var(--warning-bg);border-color:var(--warning);color:var(--warning)}
 .seg.bad .box{background:var(--critical-bg);border-color:var(--critical);color:var(--text-primary)}
 .seg.unknown .box{border:1px solid var(--border-strong);color:var(--text-muted)}
@@ -111,6 +112,7 @@ button:disabled{cursor:default;opacity:.45}
 .seg .lab{font:400 15.5px/1.5 var(--font-mono);color:var(--text-secondary);text-align:center;white-space:nowrap}
 .seg.unknown .lab{color:var(--text-muted)}
 .segdiv{width:1px;height:40px;background:var(--border-strong);flex:none}
+.seg-ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .partition{display:flex;gap:var(--space-2);font:400 15px/1.5 var(--font-mono)}
 .partition .home{flex:4;text-align:center;color:var(--text-secondary)} .partition .out{flex:2;text-align:center;color:var(--text-secondary)}
 .conclusion{display:flex;align-items:center;gap:var(--space-2);padding-top:var(--space-1)}
@@ -132,14 +134,20 @@ button:disabled{cursor:default;opacity:.45}
 .step .num{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:700 12px/1 var(--font-mono);background:var(--accent-bg);color:var(--accent)}
 .step.done .num{background:var(--success);color:var(--text-on-accent)} .step.failed .num{background:var(--critical-bg);color:var(--critical)}
 .step.upcoming .num{background:var(--bg-input);color:var(--text-secondary)}
-.step .t{font-size:16px} .step.upcoming .t{color:var(--text-secondary)}
+.step .t{font-size:17px;font-weight:600;line-height:1.45} .step.upcoming .t{color:var(--text-secondary)}
 .step .h{font:400 15.5px/1.5 var(--font-mono);color:var(--text-secondary)}
+.step:is(.upcoming,.failed) .h{display:none}   /* 조치 단계는 지금 할 단계만 설명을 보인다: 세 단계 설명이 나란히 다 보이면 글이 많아 읽기 힘들다 (11/6 사용자). 대기 화면 단계(상태 없음)는 그대로 */
 .step .confirm{display:flex;gap:var(--space-2)}
 .step .confirm button{width:100px;height:44px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-secondary)}
 .step.todo .confirm .yes{background:var(--accent);border-color:var(--accent);color:var(--text-on-accent)}
 .step.done .confirm .yes{background:var(--success-bg);border-color:var(--success);color:var(--success)}
 .step.failed .confirm .no{background:var(--critical-bg);border-color:var(--critical);color:var(--critical)}
-.answers{display:flex;gap:var(--space-4);width:100%}
+.answers{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:var(--space-4);width:100%}   /* --cols는 render.js answersHTML이 답 개수로 정한다 (3장이면 예전 한 줄 배치와 같음) */
+.answer:not(.selected):hover{background:var(--bg-input)} .answer:active{transform:scale(.99)}
+.text-answer{display:flex;flex-direction:column;gap:var(--space-2);width:100%}
+.text-answer textarea{width:100%;min-height:96px;resize:vertical;padding:var(--space-4) var(--space-5);border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border-strong);color:var(--text-primary);font:inherit;font-size:17px;line-height:1.5}
+.text-answer textarea::placeholder{color:var(--text-muted)} .text-answer textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.text-answer .count{align-self:flex-end;font:12px/1.5 var(--font-mono);color:var(--text-muted)}
 .answer{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-5);border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border-subtle);text-align:left}
 .answer.selected{background:var(--accent-bg);border:1.5px solid var(--accent)}
 .answer .ah{display:flex;align-items:center;gap:var(--space-3)}
@@ -174,7 +182,7 @@ button:disabled{cursor:default;opacity:.45}
 .chead.big{display:flex;align-items:center;gap:var(--space-4);width:100%}
 .iconbtn{width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);border:1px solid var(--border-strong);color:var(--text-secondary);font-size:14px}
 .iconbtn:hover{background:var(--bg-input);color:var(--text-primary)}
-.chead.big b{font-size:20px;font-weight:600} .chead.big span{font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
+.chead.big b{font-size:20px;font-weight:600;flex:none;white-space:nowrap} .chead.big span{font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
 .recs{display:flex;flex-direction:column;gap:var(--space-3);width:100%}
 .rec{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);width:100%}
 .rec.open{border-color:var(--border-strong)}
@@ -241,6 +249,7 @@ button:disabled{cursor:default;opacity:.45}
 .tlink.warn{border-top-color:var(--warning)} .tlink.bad{border-top-color:var(--critical)} .tlink:is(.unknown,.checking){border-top-color:var(--border-strong)} .tlink.dashed{border-top-style:dashed}
 .tlink span{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font:700 11px/1 var(--font-mono);white-space:nowrap;color:var(--critical)} .tlink.warn span{color:var(--warning)}
 .verdict{display:flex;align-items:center;gap:var(--space-3);font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}
+.verdict .pill{flex:none;white-space:nowrap}   /* 옆 로그 글이 길면 배지가 "원인/추정/0.81" 세 줄로 눌림 */
 .xh1{margin:0;font-size:34px;font-weight:700;line-height:1.25;max-width:900px;text-wrap:balance}
 .chip.mono{font:400 13px/1.5 var(--font-mono)} .chip.neutral{background:var(--bg-input)}
 
@@ -307,6 +316,7 @@ button:disabled{cursor:default;opacity:.45}
 .kg-num{font:700 15px var(--font-mono);fill:var(--text-primary)}
 .kg-col{fill:var(--text-muted);font:400 13px var(--font-ui);text-anchor:middle}
 .kg-side{fill:var(--text-secondary);font:400 12px var(--font-ui);text-anchor:middle}
+.kg-plain-scroll{overflow-x:auto}   /* 좁은 화면: 그림만 옆으로 넘기고 제목·설명 글은 제자리 */
 .kg-list{margin:var(--space-4) 0 var(--space-3);padding-left:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);font-size:14px;line-height:1.6}
 /* 전문가 그래프: 선택·포커스·호버, 패널(높이 고정), 로그의 id 버튼 */
 #stage .kg-n{cursor:pointer} .kg-n:focus{outline:none}
@@ -340,12 +350,35 @@ button:disabled{cursor:default;opacity:.45}
 .metric .was{color:var(--text-muted);text-decoration:line-through} .metric .v .arrow{color:var(--text-muted);margin:0 6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
-/* 좁은 화면(휴대폰·작은 창): 정식 모바일 화면은 아직 없다(Figma "Mobile merged v2" 참고). 지금은 내용이 잘리지 않게만 —
+/* 좁은 화면(휴대폰·작은 창): 560px 이하 휴대폰 배치는 아래 '휴대폰' 블록(Figma "Mobile v3 정리안"). 959px 이하는 내용이 잘리지 않게만 —
    본문을 먼저 두고 왼쪽 영역(진단 단계·로그)은 그 아래로 쌓고, 넘치는 줄은 안에서 가로 스크롤한다 */
-@media (max-width:900px){
+@media (max-width:560px){
+  .metric .k{min-width:min-content} .metric .v{white-space:normal;text-align:right}   /* 320px: 긴 값("통신사 제공, 광모뎀 있음")이 이름을 "공/유기"로 누르지 않게 값 쪽이 줄바꿈 */
+  .kg-panel .kg-pc{grid-template-columns:1fr}   /* 아래 900px 블록의 2칸보다 우선. 관계·로그 두 칸이 140px씩이면 영어 ID가 한두 낱말씩 꺾임 → 위아래로 */
+}
+/* 360px 미만 휴대폰: 6칸이 한 줄이면 칸이 38px라 '와이파이'가 안 들어간다 → 집 안 4칸 / 집 밖 2칸 두 줄. DOM은 그대로, .segments·.partition을 풀어 카드 격자에 직접 놓는다 */
+@media (max-width:359px){
+  .card.path:not(.topo){display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+  .card.path:not(.topo) :is(.segments,.partition){display:contents}
+  .card.path:not(.topo) .segdiv{display:none}
+  .card.path:not(.topo) > :is(.chead,.conclusion){grid-column:1/-1}
+  .card.path:not(.topo) .segments > :nth-child(-n+4){grid-row:2}
+  .card.path:not(.topo) .partition .home{grid-row:3;grid-column:1/-1;margin-bottom:var(--space-2)}
+  .card.path:not(.topo) .segments > :nth-child(6){grid-row:4;grid-column:1} .card.path:not(.topo) .segments > :nth-child(7){grid-row:4;grid-column:2}
+  .card.path:not(.topo) .partition .out{grid-row:4;grid-column:3/-1;align-self:start;text-align:left;padding-top:8px}
+  .card.path:not(.topo) .conclusion{grid-row:5}
+  .card.path:not(.topo) .seg .lab{white-space:normal;word-break:keep-all;line-height:1.3}
+}
+@media (max-width:359px){ .card.path:not(.topo) :is(.seg .lab,.partition .out){font-size:13px} }   /* 320px 휴대폰: 칸 54px에 '와이파이' 네 글자, 두 칸 폭에 '기다리는 구간 (집 밖)'이 한 줄로 들어가게 */
+@media (max-width:959px){   /* 900이던 경계: 901~950px에서 홈 시작 버튼과 (전문가 칩이 켜지면) 설정 버튼이 화면 밖으로 넘쳐 올림 (11/4) */
   .topbar{height:auto;flex-wrap:wrap;gap:var(--space-1) var(--space-3);padding:var(--space-2) var(--space-4)}
   .topbar :is(.tab,.ghost){height:36px}
   .topbar .spacer{display:none}
+  /* 상단바: 1줄 앱 이름·데모 안내, 2줄 홈·기록·통신사·설정, 상태 글자는 자리가 모자라면 다음 줄(옆으로 밀면 오른쪽 끝에서 잘려 보임). 데모 예시 바꾸기는 '데모 안내' 시트에 있다 */
+  .topbar > a.ghost[data-scenario], .topbar .isp{display:none}
+  #nav-normal:not([hidden]){display:flex!important;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+  #nav-normal > *{flex:none} #nav-normal > .status-pill{order:1}   /* 홈·기록·통신사·설정이 먼저 보이고, 긴 상태 글자는 맨 뒤 */
+  .card{padding:var(--space-4)}
   .body{flex-direction:column}
   .stage{order:1;min-width:0;padding:var(--space-5) var(--space-4)}
   .stage:has(.actions.home-cta){gap:var(--space-3);padding-top:var(--space-2)}
@@ -353,21 +386,80 @@ button:disabled{cursor:default;opacity:.45}
   .rail.collapsed .rail-vlabel{writing-mode:horizontal-tb;margin:0;letter-spacing:0}
   .rail-toggle{top:var(--space-3);right:var(--space-3)} .rail.collapsed .rail-toggle{position:absolute}
   .headline h1{font-size:26px}
-  .detail{flex-direction:column}
+  .verdict{flex-wrap:wrap;row-gap:var(--space-1)}   /* 전문가 모드: 배지 옆 로그 글이 좁은 칸에서 세 줄로 꺾이지 않게 아래 줄로 */
+  .detail{flex-direction:column;align-items:stretch}   /* 위아래로 쌓으면 목록이 글자 폭만큼만 줄어들지 않게 화면 폭 전체 */
   .segments{overflow-x:auto} .tchain{overflow-x:auto;padding-top:var(--space-3)} .tnode{min-width:120px}
   .actions{flex-wrap:wrap} .actions .btn{flex:1;min-width:0} .actions.home-cta .btn{flex-basis:100%}   /* 둘이 한 줄이면 진단 시작 글자가 잘림 → 버튼마다 한 줄 */
   .actions .foot{flex-basis:100%} .actions .spacer{display:none}   /* 각주가 버튼과 한 줄에 남으면 버튼(기본 폭 0)이 남은 50px로 눌린다 → 각주는 위 한 줄, 버튼은 아래 줄을 나눠 씀 */
-  .actions .btn.pri[data-event="recheck"]{height:auto;min-height:52px;padding-block:var(--space-3);line-height:1.35;white-space:normal;text-align:center}
+  .actions .btn.pri[data-event="recheck"]{flex-basis:100%}   /* 둘이 한 줄이면 "상태 다시 확인하기"가 두 줄로 꺾임 → 버튼마다 한 줄 */
   .kg-pc{grid-template-columns:1fr 1fr} .kg-panel{height:auto;max-height:none} .kg-pc > div{max-height:160px}
   .sheet,.sheet.wide{width:calc(100vw - 24px);padding:var(--space-4)}
   .kg .chead{flex-wrap:wrap;row-gap:var(--space-2)} .kg .chead .spacer{display:none} .kg-ph{flex-wrap:wrap} .kg-view{margin-left:auto}   /* 카드 머리·패널 머리는 줄바꿈(글자가 한 글자씩 세로로 쪼개지지 않게) */
-  .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 시트가 좌우로 스크롤된다 */
+  .kg-svg.kg-plain{min-width:860px}                                          /* 일반 모드 시트도 같은 이유: 그림 칸(.kg-plain-scroll)만 좌우로 스크롤된다 */
   .rec-head{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"when result" "cause toggle" "fix fix";gap:var(--space-2) var(--space-3)}
   .rec-head .rw{grid-area:when;width:auto}
   .rec-head .rc{grid-area:cause;width:auto}
   .rec-head .rf{grid-area:fix;overflow-wrap:anywhere}
   .rec-head .pill{grid-area:result;justify-self:end}
   .rec-head .rt{grid-area:toggle;justify-self:end}
+  .steps{flex-direction:column;align-items:stretch} .answers{grid-template-columns:1fr}   /* 조치 단계·질문 답 카드 3장이 가로로 서면 한 장이 100px 남짓이라 글자가 한 자씩 세로로 쪼개진다 → 위아래로 쌓기 */
+  .set-row{flex-wrap:wrap} .seg-ctrl{flex:1 1 100%;flex-wrap:wrap}   /* 선택 버튼은 늘 설명 아래 줄로: 옆에 남으면 설명 글이 좁은 칸에서 몇 글자씩 쪼개진다 */
+}
+
+/* 휴대폰(560px 이하): Figma "Mobile v3 정리안"(03 Screens 페이지, 노드 315:1037) 배치. 위는 상태 한 줄, 메뉴는 아래 탭, 제목이 경로 카드보다 먼저.
+   .app[data-screen]은 app.js paint()가 붙인다 (home·scanning·result·steps·done·question·wait·records·settings·expert) */
+.tabbar,.progress,.why-lead{display:none}
+@media (max-width:560px){
+  .app:not([data-screen=expert]) .topbar{flex-wrap:nowrap;gap:var(--space-2)}   /* 전문가 모드 상단은 항목이 많아 900px 블록처럼 줄바꿈 */
+  .topbar .brand{display:none}   /* 앱 이름은 첫 페이지에 크게 있음 */
+  #nav-normal:not([hidden]){flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+  #nav-normal > :not(.status-pill):not(#expert-pill), #isp-call > *{display:none}   /* 홈·기록·설정은 아래 탭으로, 통신사는 설정에서 (#isp-call은 인라인 display:contents라 안쪽 버튼을 숨김) */
+  .topbar .demo-help{order:2;position:relative}   /* 상태는 왼쪽, 데모 안내는 오른쪽 */
+  .topbar .demo-help::after{content:"";position:absolute;inset:-9px -4px}   /* 보이는 크기(27px)는 그대로 두고 누르는 영역만 45px로 */
+  :root:has(.app:is([data-screen=home],[data-screen=records],[data-screen=settings])){scroll-padding-bottom:88px}   /* 키보드 이동 때 고정 탭 막대 뒤로 초점이 숨지 않게 */
+  .seg-opt{height:44px} .iconbtn{width:44px;height:44px}   /* 손가락 기준 44px (설정 선택지·닫기) */
+  .toggle{position:relative} .toggle::after{content:"";position:absolute;inset:-9px 0}   /* 스위치는 그대로, 누르는 영역만 44px */
+  .topbar .status-pill{flex:1 1 auto;min-width:0;padding:0;background:none}
+  #status-pill-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .tabbar{display:grid;grid-template-columns:repeat(3,1fr);position:fixed;left:0;right:0;bottom:0;z-index:5;padding:var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom));background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
+  .app:not(:is([data-screen=home],[data-screen=records],[data-screen=settings])) .tabbar{display:none}   /* 진단 중·전문가 모드에는 탭 없음 */
+  .app:is([data-screen=home],[data-screen=records],[data-screen=settings]) .body{padding-bottom:72px}   /* 고정 탭 막대 밑에 마지막 버튼이 가리지 않게 */
+  .tabbar .tab{height:52px;flex-direction:column;justify-content:center;gap:var(--space-1);padding:0;background:none;font-size:13px;color:var(--text-muted)}
+  .tabbar .tab::before{content:"";width:6px;height:6px;border-radius:50%}
+  .tabbar .tab.on{background:none;color:var(--text-primary)} .tabbar .tab.on::before{background:var(--accent)}
+
+  .app:not(:is([data-screen=records],[data-screen=settings],[data-screen=expert])) .rail{display:none}   /* 홈의 '우리 집 인터넷', 진단의 '진단 단계' 목록은 휴대폰에서 뺌 (질문 화면은 진행 막대로 대신) */
+  .headline h1{font-size:22px}
+  .app:is([data-screen=home],[data-screen=result]) #stage > .headline{order:-2}   /* 제목·설명을 경로 카드보다 먼저 */
+  .app:is([data-screen=home],[data-screen=result]) #stage > .card.path{order:-1}
+  .app[data-screen=home] .stage{padding-top:var(--space-5)}   /* 제목이 맨 위로 오므로 상단 줄과 띄움 (900px 블록의 홈 8px 대신) */
+  .app:is([data-screen=home],[data-screen=result]) .card.path .conclusion{display:none}   /* 바로 위 제목·설명과 같은 말 */
+  .app[data-screen=home] .card.path .chead span{display:none}   /* '방금 예시 확인'은 제목 위 배지와 같은 말 */
+  .app[data-screen=home] .actions .btn{flex-basis:100%}
+  .app[data-screen=home] .actions .btn.pri{order:1}   /* 주버튼이 위, 보조 버튼이 아래 */
+  .app[data-screen=home] .actions .btn.sec{order:2}
+  /* 진단 화면은 근거·답 목록이 길어 주 버튼이 첫 화면 밖으로 밀린다(결과 1123px, 완료 1032px): 버튼 줄을 화면 아래에 붙인다. 탭 막대가 없는 화면만 */
+  .app:is([data-screen=result],[data-screen=question],[data-screen=wait],[data-screen=done]) #stage > .actions{position:sticky;bottom:0;z-index:2;width:auto;row-gap:var(--space-2);margin:0 calc(-1 * var(--space-4)) calc(-1 * var(--space-5));padding:var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));background:var(--bg-base);border-top:1px solid var(--border-subtle)}
+  :root:has(.app:is([data-screen=result],[data-screen=question],[data-screen=wait],[data-screen=done])){scroll-padding-bottom:200px}   /* 키보드 이동 때 초점이 아래 버튼 줄 뒤로 숨지 않게 (기다림 화면 줄이 약 190px) */
+
+  .app[data-screen=question] #stage > .card.path{display:none}   /* 경로 카드 대신 그 결론 문장을 안내 상자 맨 위에 (.why-lead) */
+  .app[data-screen=question] .why-lead{display:block;margin:0 0 var(--space-1);color:var(--text-primary)}
+  .why{align-items:flex-start} .why > .dot{margin-top:7px}
+  .app[data-screen=question] .progress{display:flex;flex-direction:column;gap:var(--space-2)}
+  .answers:not(:has(.hint)){gap:var(--space-2)}   /* 설명 없는 선택지(KG 세부 질문 7~8개)는 한 목록으로 읽히게 촘촘히. 설명 있는 카드는 16px 그대로 */
+  .progress .ph{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)}
+  .progress .ph b{font:700 12px/1.5 var(--font-mono);color:var(--accent)}
+  .progress .bar{display:flex;gap:4px} .progress .bar i{flex:1;height:4px;border-radius:2px;background:var(--border-subtle)} .progress .bar i:is(.done,.current){background:var(--accent)}
+}
+@media (min-width:360px) and (max-width:560px){   /* 경로 6칸 한 줄 (Figma 시안). 이름은 UI 글꼴 11px: 12px로 키우면 375px에서 '내 컴퓨터'와 '와이파이' 사이가 4px라 한 단어처럼 붙어 보임 */
+  .card.path:not(.topo) .segments{gap:var(--space-1);overflow:visible}
+  .card.path:not(.topo) .segdiv{height:36px}
+  .card.path:not(.topo) .seg .box{height:36px;gap:3px;font-size:12px}
+  .card.path:not(.topo) .seg-ic{width:16px;height:16px}
+  .card.path:not(.topo) .seg .lab{font:400 11px/1.3 var(--font-ui);white-space:nowrap}   /* 360px에서 '내 컴퓨터'(47px)가 칸(45px)보다 조금 넓다 → 꺾지 않고 칸 사이 4px 틈으로 1px씩 넘김 */
+  .card.path:not(.topo) .partition{gap:var(--space-1);font:400 12px/1.4 var(--font-ui)}
+  .card.path:not(.topo) .partition :is(.home,.out){color:var(--text-muted)} .card.path:not(.topo) .partition span{white-space:nowrap}   /* 줄이 꺾이면 '(집 밖)' 앞에서 */
 }
 
 /* 라이트 모드 보정: 경로 밖 회색 타일을 옅게(진한 회색이면 경로 색과 안 구분됨) — 면은 옅은 회색, 아이콘·종류명은 진한 회색 */

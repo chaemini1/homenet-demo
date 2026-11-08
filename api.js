@@ -3,7 +3,7 @@
 // 자동 감지(서버가 안 되면 데모로)는 하지 않는다: 서버 고장을 그럴듯한 예시 화면으로 덮는 침묵 실패가 되기 때문.
 export let demoBroken = false;   // true면 app.js가 재시도 버튼을 새로고침으로 바꾼다
 const demo = document.documentElement.dataset.mode === 'demo'
-  && Promise.all([import('./demo.js?v=1253c0e1'), import('./fixtures.js?v=1253c0e1')])
+  && Promise.all([import('./demo.js?v=d3dcecc5'), import('./fixtures.js?v=d3dcecc5')])
     // 브라우저가 실패한 import를 기억해서 다시 시도로는 안 풀린다 → 새로고침 안내 (demoBroken)
     .catch(() => { demoBroken = true; throw new Error('데모 파일을 받지 못했어요. 새로고침(F5) 해 주세요'); })
     .then(([d, f]) => d.createServer(f.default));
@@ -16,7 +16,7 @@ export const getSettings = () => call('/settings');
 export const getKg = () => call('/kg');
 export const getExpert = sessionId => call(sessionId ? `/expert?session=${encodeURIComponent(sessionId)}` : '/expert');
 export const startDiagnosis = (scenario = 'wifi') => call('/diagnose/start', { scenario });
-export const advance = (sessionId, event, value = null) => call(`/diagnose/${encodeURIComponent(sessionId)}/advance`, { event, value });
+export const advance = (sessionId, event, value = null, text) => call(`/diagnose/${encodeURIComponent(sessionId)}/advance`, text === undefined ? { event, value } : { event, value, text });
 
 async function call(path, body) {
   if (demo) {

@@ -9,17 +9,27 @@ const DOT_LABEL = { ok: '정상', warn: '주의', bad: '문제', unknown: '미�
 export const dotHTML = (t, labeled = false) => labeled && DOT_LABEL[tone(t)] ? `<span class="dot ${tone(t)}" role="img" aria-label="${DOT_LABEL[tone(t)]}"></span>` : `<span class="dot ${tone(t)}"></span>`;
 export const pillHTML = p => `<span class="pill ${tone(p.tone)}">${dotHTML(p.tone)}${esc(p.text)}</span>`;
 
+// 경로 칸 그림: 무엇인지 알아보게 하는 장식. 상태는 옆 글리프가 맡는다 (색만으로 구분하지 않게)
+const SEG_ICON = {
+  pc: '<rect x="3" y="4" width="14" height="9" rx="1.5"/><path d="M7.5 16.5h5M10 13v3.5"/>',
+  wifi: '<path d="M3 8a10 10 0 0 1 14 0M5.5 10.8a6.5 6.5 0 0 1 9 0M8 13.6a3 3 0 0 1 4 0M10 16.3h.01"/>',
+  router: '<rect x="2.5" y="10.5" width="15" height="6" rx="1.5"/><path d="M6 10.5V4M14 10.5V4"/><circle cx="6" cy="13.5" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="13.5" r="1" fill="currentColor" stroke="none"/>',
+  wall: '<rect x="4" y="2.5" width="12" height="15" rx="1.5"/><circle cx="10" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M7.5 15h5"/>',   // 세워 둔 모뎀: 앞면 표시등 세로 줄 (안테나 달린 공유기와 구분)
+  isp: '<path d="M10 8v9M7 17l3-9 3 9M8 14h4M6.6 3.6a4.5 4.5 0 0 0 0 5.8M13.4 3.6a4.5 4.5 0 0 1 0 5.8"/><circle cx="10" cy="6.5" r="1.3" fill="currentColor" stroke="none"/>',   // 전파를 내보내는 통신 탑
+  internet: '<circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c2.2 2 3.2 4.5 3.2 7s-1 5-3.2 7c-2.2-2-3.2-4.5-3.2-7s1-5 3.2-7z"/>',
+};
 export function segmentHTML(s) {
-  const st = tone(s.status);
-  return `<div class="seg ${st}"><div class="box">${GLYPH[st] ?? '?'}</div><div class="lab">${esc(s.label)}</div></div>`;
+  const st = tone(s.status), ic = SEG_ICON[s.key];
+  const icon = ic ? `<svg class="seg-ic" viewBox="0 0 20 20" aria-hidden="true">${ic}</svg>` : '';
+  return `<div class="seg ${st}"><div class="box">${icon}${GLYPH[st] ?? '?'}</div><div class="lab">${esc(s.label)}</div></div>`;
 }
 export function pathCardHTML(p) {
   const segs = p.segments.map(segmentHTML);
   segs.splice(4, 0, '<div class="segdiv"></div>');           // 4칸(집 안) | 2칸(집 밖)
   return `<section class="card path">
-    <div class="chead"><b>우리 집 인터넷이 지나가는 길이에요</b><span>${esc(p.note)}</span></div>
+    <div class="chead"><b>우리 집 인터넷 경로</b><span>${esc(p.note)}</span></div>
     <div class="segments">${segs.join('')}</div>
-    <div class="partition"><div class="home">내가 고칠 수 있는 구간 (집 안)</div><div class="out">기다리는 구간 (집 밖)</div></div>
+    <div class="partition"><div class="home">내가 고칠 수 있는 구간 <span>(집 안)</span></div><div class="out">기다리는 구간 <span>(집 밖)</span></div></div>
     <div class="conclusion">${dotHTML(p.conclusion.tone)}<p>${esc(p.conclusion.text)}</p></div>
   </section>`;
 }
@@ -34,8 +44,9 @@ const sourceHTML = s => {
 };
 const sourcesHTML = list => list?.length ? `<ul class="msrc" aria-label="근거 출처">${list.map(sourceHTML).join('')}</ul>` : '';
 export function metricListHTML(l) {
+  if (!l) return '';                                    // 정상 결과처럼 후보 목록이 없는 화면
   const meta = l.meta ? `<span>${esc(l.meta)}</span>` : '';
-  const note = l.rows.some(m => m.sources?.length) ? '<p class="msrc-note">출처는 참고용이에요. 실제 측정 결과와는 별개예요.</p>' : '';
+  const note = l.rows.some(m => m.sources?.length) ? '<p class="msrc-note">출처는 참고용이며 실제 측정 결과와 별개입니다.</p>' : '';
   return `<div class="mlist"><div class="mhead"><b>${esc(l.title)}</b>${meta}</div>${l.rows.map(m => metricRowHTML(m) + sourcesHTML(m.sources)).join('')}${note}</div>`;
 }
 export function stepperHTML(steps) {
@@ -47,13 +58,18 @@ export function stepConfirmHTML(s, index) {
   const num = s.state === 'done' ? '✓' : esc(s.num);
   return `<div class="step ${esc(s.state)}">
     <div class="head"><div class="num">${num}</div><div><div class="t">${esc(s.title)}</div><div class="h">${esc(s.hint)}</div></div></div>
-    <div class="confirm"><button type="button" class="yes" data-event="step_done" data-step="${index}"${dis}>됐어요</button><button type="button" class="no" data-event="step_failed" data-step="${index}"${dis}>안 됐어요</button></div>
+    <div class="confirm"><button type="button" class="yes" data-event="step_done" data-step="${index}"${dis}>해결됨</button><button type="button" class="no" data-event="step_failed" data-step="${index}"${dis}>해결 안 됨</button></div>
   </div>`;
 }
 export const stepInfoHTML = s => `<div class="step"><div class="head"><div class="num">${esc(s.num)}</div><div><div class="t">${esc(s.title)}</div><div class="h">${esc(s.hint)}</div></div></div></div>`;
-export const answerCardHTML = (a, selected) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}" aria-pressed="${!!selected}"><div class="ah"><div class="at">${esc(a.title)}</div><div class="chk" aria-hidden="true">✓</div></div><div class="hint">${esc(a.hint)}</div></button>`;
+export const answerCardHTML = (a, selected) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}" aria-pressed="${!!selected}"><div class="ah"><div class="at">${esc(a.title)}</div><div class="chk" aria-hidden="true">✓</div></div>${a.hint ? `<div class="hint">${esc(a.hint)}</div>` : ''}</button>`;
+// 열 수는 답 개수로 고른다: 마지막 줄에 카드 한 장만 남지 않게 (4장 2×2, 7·8장 4열, 그 밖은 최대 3열). 959px 아래는 CSS가 1열로 쌓는다
+const ANSWER_COLS = { 4: 2, 7: 4, 8: 4 };
+// 글로 받는 답(KG WFU14). 글자 수는 서버처럼 코드포인트로 센다
+export const textInputHTML = (box, text = '') => `<div class="text-answer"><textarea id="answer-text" rows="3" maxlength="${box.max}" placeholder="${esc(box.placeholder)}" aria-label="설명 입력" aria-describedby="answer-count">${esc(text)}</textarea><div class="count" id="answer-count">${[...text].length}/${box.max}자</div></div>`;
+export const answersHTML = (list, selected) => `<div class="answers" style="--cols:${ANSWER_COLS[list.length] ?? Math.min(list.length, 3)}">${list.map(a => answerCardHTML(a, a.id === selected)).join('')}</div>`;
 export function headlineHTML(h) {
-  return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1><p>${esc(h.body)}</p></div>`;
+  return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1>${h.body ? `<p>${esc(h.body)}</p>` : ''}</div>`;
 }
 // 번호가 있는 버튼(event "call")은 tel: 링크 — 브라우저가 전화 앱으로 넘긴다. 번호를 추측하지 않으므로 tel이 없으면 링크도 없다
 export const actionHTML = (b, cls) => !b ? '' : b.tel
@@ -63,8 +79,14 @@ const btn = (b, cls) => actionHTML(b, `btn ${cls}`);
 export function actionsHTML(a, cls = '') {
   return `<div class="actions${cls ? ' ' + cls : ''}"><p class="foot">${esc(a.footnote)}</p><div class="spacer"></div>${btn(a.secondary, 'sec')}${btn(a.primary, 'pri')}</div>`;
 }
-export const whyAskingHTML = t => `<div class="why">${dotHTML('checking')}<p style="margin:0">${esc(t)}</p></div>`;
-export const noteHTML = () => `<div class="note"><div class="row">${dotHTML('neutral')}예시 데이터로 보는 중</div><p>실제 장비를 측정하지 않고 진단 흐름을 보여 드려요.</p></div>`;
+// lead: 휴대폰에서 경로 카드를 숨길 때 그 결론 문장을 이 상자 맨 위에 보인다(.why-lead는 560px 아래에서만 보임)
+export const whyAskingHTML = (t, lead) => `<div class="why">${dotHTML('checking')}<div>${lead ? `<p class="why-lead">${esc(lead)}</p>` : ''}<p style="margin:0">${esc(t)}</p></div></div>`;
+// 휴대폰 질문 화면: 왼쪽 '진단 단계' 목록 대신 한 줄 진행 막대 (.progress는 560px 아래에서만 보임)
+export function progressHTML(steps) {
+  const at = (steps.findIndex(s => s.state === 'current') + 1) || steps.filter(s => s.state === 'done').length;
+  return `<div class="progress"><div class="ph"><span>진단 진행</span><b>${at} / ${steps.length}</b></div><div class="bar">${steps.map(s => `<i class="${esc(s.state)}"></i>`).join('')}</div></div>`;
+}
+export const noteHTML = () => `<div class="note"><div class="row">${dotHTML('neutral')}예시 데이터로 보는 중</div><p>실제 장비를 측정하지 않고 진단 흐름을 보여 줍니다.</p></div>`;
 export const railStepsHTML = steps => `<div class="lbl">진단 단계</div>${stepperHTML(steps)}<div class="spacer"></div>${noteHTML()}`;
 export function railHomeHTML(s) {
   const row = (k, v) => metricRowHTML({ label: k, value: v, status: 'neutral' });
@@ -75,7 +97,7 @@ export function railHomeHTML(s) {
 export function recentCardHTML(s) {
   const rows = s.recent.length
     ? s.recent.map(r => metricRowHTML({ label: r.label, value: r.when, status: r.tone })).join('')
-    : '<p class="state">아직 진단 기록이 없어요. 문제가 생기면 진단을 시작해 보세요.</p>';
+    : '<p class="state">아직 진단 기록이 없습니다. 문제가 생기면 진단을 시작하면 됩니다.</p>';
   return `<section class="card recent"><div class="chead"><b>최근 기록</b><button type="button" class="ghost link" data-nav="records">전체 보기</button></div>${rows}<p class="foot">${esc(s.recent_footnote)}</p></section>`;
 }
 
@@ -93,7 +115,7 @@ export function recordRowHTML(r, open) {
   return `<div class="rec${open ? ' open' : ''}"><button type="button" class="rec-head" data-rec="${esc(r.id)}"><span class="rw">${esc(r.when)}</span><span class="rc">${esc(r.cause)}</span><span class="rf">${esc(r.fix)}</span><span class="pill ${esc(r.status.tone)}">${esc(r.status.text)}</span><span class="rt">${open ? '접기' : '펼치기'}</span></button>${body}</div>`;
 }
 export const closeBtnHTML = () => `<button type="button" class="iconbtn" data-nav="back" title="닫기 (Esc)" aria-label="닫기">✕</button>`;
-export const recordsStageHTML = (d, openId, demo = false) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div><div class="recs">${d.records.length ? d.records.map(r => recordRowHTML(r, r.id === openId)).join('') : '<p class="state">아직 진단 기록이 없어요. 문제가 생기면 진단을 시작해 보세요.</p>'}</div><div class="spacer"></div><div class="actions"><p class="foot">${esc(demo ? d.demo_footnote ?? d.footnote : d.footnote)}</p><div class="spacer"></div><button type="button" class="btn sec" data-event="export_records">${esc(d.export_label)}</button></div>`;
+export const recordsStageHTML = (d, openId, demo = false) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div><div class="recs">${d.records.length ? d.records.map(r => recordRowHTML(r, r.id === openId)).join('') : '<p class="state">아직 진단 기록이 없습니다. 문제가 생기면 진단을 시작하면 됩니다.</p>'}</div><div class="spacer"></div><div class="actions"><p class="foot">${esc(demo ? d.demo_footnote ?? d.footnote : d.footnote)}</p><div class="spacer"></div><button type="button" class="btn sec" data-event="export_records">${esc(d.export_label)}</button></div>`;
 
 // ==== W8 설정 ====
 export const settingsRailHTML = (d, activeId) => `<div class="lbl">설정</div><div class="secnavs">${d.sections.map(s => `<button type="button" class="secnav${s.id === activeId ? ' on' : ''}" data-secnav="${esc(s.id)}">${esc(s.title)}</button>`).join('')}</div><div class="spacer"></div><div class="note"><div class="row">${dotHTML('ok')}${esc(d.rail_note.head)}</div><p>${esc(d.rail_note.body)}</p></div>`;
@@ -112,7 +134,7 @@ export function settingsSectionHTML(sec, values, demo = false) {
 export const settingsStageHTML = (d, values, demo = false) => `<div class="chead big"><b>${esc(d.title)}</b><div class="spacer"></div><span>${esc(d.meta)}</span>${closeBtnHTML()}</div>${d.sections.map(s => settingsSectionHTML(s, values, demo)).join('')}`;
 
 // ==== WE1 전문가 콘솔 ====
-export const expertTopbarHTML = t => `<span class="pill checking">${dotHTML('checking')}${esc(t.pill)}</span><div class="spacer"></div><span class="isp">${esc(t.model)}&nbsp;&nbsp;${esc(t.kg)}</span><span class="toggle-row">${esc(t.toggle_label)}<button type="button" class="toggle on" role="switch" aria-checked="true" data-expert-off><span class="knob"></span></button></span><button type="button" class="ghost" data-nav="settings">설정</button>`;
+export const expertTopbarHTML = t => `<span class="pill checking">${dotHTML('checking')}${esc(t.pill)}</span><div class="spacer"></div><span class="isp">${esc(t.model)}&nbsp;&nbsp;${esc(t.kg)}</span><span class="toggle-row">${esc(t.toggle_label)}<button type="button" class="toggle on" role="switch" aria-checked="true" aria-label="${esc(t.toggle_label)}" data-expert-off><span class="knob"></span></button></span><button type="button" class="ghost" data-nav="settings">설정</button>`;
 // 로그 속 KG id를 버튼으로(known에 있는 것만). known이 없으면 예전 출력 그대로. 눌리면 app.js가 그래프 노드를 선택한다
 const KG_ID = /\b(?:symptom|cause|action|evidence|remedy)_[a-z0-9_]+/g;
 const withIdRefs = (text, known) => known ? esc(text).replace(KG_ID, m => known.has(m) ? `<button type="button" class="idref" data-kg="${m}">${m}</button>` : m) : esc(text);
@@ -357,7 +379,7 @@ export function kgGeneralHTML(kg, path = []) {
   // 상태 글자: 타입 쪽(plain_states, 예: 증거가 ok면 "지금은 괜찮아요")을 먼저, 없으면 공통. 괄호 대신 ' · ' (쉬운 말에 괄호가 이미 있어 두 번 겹치지 않게)
   const word = i => meta.types[i.n.type].plain_states?.[i.t] ?? meta.states[i.t];
   const li = i => `<li>${esc(meta.types[i.n.type].plain)} — ${esc(i.n.plain)}${word(i) ? ` · ${esc(word(i))}` : ''}${side(i) ? `. ${esc(side(i))}` : ''}</li>`;
-  return `<svg class="kg-svg kg-plain" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.plain_aria)}">${kgMarkers('kgg', Object.keys(TONE))}${band}${heads}${links.map(curve).join('')}${drawn.map(node).join('')}</svg>`
+  return `<div class="kg-plain-scroll"><svg class="kg-svg kg-plain" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.plain_aria)}">${kgMarkers('kgg', Object.keys(TONE))}${band}${heads}${links.map(curve).join('')}${drawn.map(node).join('')}</svg></div>`
     + `<ul class="kg-list">${shown.map(li).join('')}</ul>${foot}`;
 }
 
@@ -367,13 +389,13 @@ export const licensesHTML = items => `<div class="lic">${items.map(i => `<div cl
 // 첫 페이지는 고정 안내 문구. 실제 자동 점검 설정과 서버/정적 데모 모드에 맞춰 설명한다.
 export function firstPage({ autoScan = true, demo = false } = {}) {
   const how = [
-    autoScan ? ['앱을 열면 자동으로 한 번 확인해요', '결과는 홈 맨 위 그림에 나와요. 설정에서 끌 수 있어요.']
-      : ["홈에서 '지금 확인하기'를 눌러요", '자동 점검을 꺼 두었어요. 설정에서 다시 켤 수 있어요.'],
-    ["'문제가 있어요, 진단 시작'을 눌러요", '어디서 막혔는지 여섯 구간을 차례로 확인해요.'],
-    ['질문에 답하면, 다음 할 일이 보여요', "답을 고르고 '다음'을 눌러요. 기기가 잴 수 없는 것만 물어봐요."],
+    autoScan ? ['앱을 열면 자동으로 한 번 확인', '결과는 홈 맨 위 그림에 나옵니다. 설정에서 끌 수 있습니다.']
+      : ["홈에서 '지금 확인하기' 누르기", '자동 점검이 꺼져 있습니다. 설정에서 다시 켤 수 있습니다.'],
+    ["'문제 있음, 진단 시작' 누르기", '어디서 막혔는지 여섯 구간을 차례로 확인합니다.'],
+    ['질문에 답하면 다음 할 일 표시', "답을 고르고 '다음'을 누릅니다. 기기가 잴 수 없는 것만 묻습니다."],
   ];
-  const privacy = demo ? '고른 답과 설정은 이 브라우저 밖으로 보내지 않아요. 기록은 새로고침하면 처음 상태로 돌아가요.'
-    : '고른 답은 시연용 서버로 보내요. 기록은 같은 서버에 접속한 사람과 함께 보이고, 서버를 다시 켜면 처음 상태로 돌아가요.';
+  const privacy = demo ? '고른 답과 설정은 이 브라우저 밖으로 보내지 않습니다. 기록은 새로고침하면 처음 상태로 돌아갑니다.'
+    : '고른 답은 시연용 서버로 보냅니다. 기록은 같은 서버에 접속한 사람과 함께 보이며, 서버를 다시 켜면 처음 상태로 돌아갑니다.';
   return `<div class="first-page-screen">
     <header class="first-header"><div><button type="button" class="first-brand" data-nav="intro" title="첫 페이지로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7M6 9v11h12V9M10 20v-6h4v6"/></svg>홈넷 진단 도우미</button></div></header>
     <main>
@@ -381,20 +403,20 @@ export function firstPage({ autoScan = true, demo = false } = {}) {
         <div class="network-hero first-page">
           <div class="network-copy">
             <p class="network-eyebrow">집 안부터, 집 밖까지.</p>
-            <h1 id="first-title" tabindex="-1"><span>끊긴 인터넷,</span><span>어디가 문제일까요?</span></h1>
-            <p class="network-description"><span class="desktop-copy">집 안 문제면 직접 고치는 순서를,<br>집 밖 문제면 기다릴지 연락할지 알려 드려요.</span><span class="mobile-copy">집 안은 고치는 순서를,<br>집 밖은 기다릴지 연락할지 알려 드려요.</span></p>
+            <h1 id="first-title" tabindex="-1"><span>끊긴 인터넷,</span><span>어디가 문제인지 찾기</span></h1>
+            <p class="network-description"><span class="desktop-copy">집 안 문제면 직접 고치는 순서를,<br>집 밖 문제면 기다릴지 연락할지 알려 드립니다.</span><span class="mobile-copy">집 안은 고치는 순서를,<br>집 밖은 기다릴지 연락할지 알려 드립니다.</span></p>
             <div class="hero-actions"><button type="button" class="btn pri" data-event="intro_start">시작하기<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button></div>
-            <p class="copy-note">지금은 예시 데이터로 진단 흐름을 보여 드려요.</p>
+            <p class="copy-note">지금은 예시 데이터로 진단 흐름을 보여 드립니다.</p>
           </div>
-          <figure class="network-art"><img src="first-page/signal-cable.webp" width="1448" height="1086" fetchpriority="high" alt="부드럽게 흐르는 케이블 선들 사이, 한 곳의 끊김을 강조한 연결 진단 이미지"></figure>
+          <figure class="network-art" role="img" aria-label="와이파이 신호를 재고 문제를 해결하는 진단 예시 화면"><iframe src="hero/index.html" title="진단 예시 애니메이션" tabindex="-1" aria-hidden="true"></iframe></figure>
         </div>
       </section>
       <div class="first-page">
         <section class="how" aria-labelledby="how-title">
-          <h2 class="how-title" id="how-title">복잡한 연결을, 하나씩 좁혀요.</h2>
+          <h2 class="how-title" id="how-title">복잡한 연결을 하나씩 좁혀 확인</h2>
           <ol class="how-steps">${how.map(([title, description], i) => `<li><span class="step-number" aria-hidden="true">0${i + 1}</span><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div></li>`).join('')}</ol>
         </section>
-        <footer class="first-footer"><p>지금은 미리 준비한 값으로 진단 흐름을 보여 줘요. 실제 장비를 재지 않아요.</p><p>${esc(privacy)}</p><p>처음 한 번만 보여요. 설정 → 정보 → 사용법에서 다시 볼 수 있어요.</p></footer>
+        <footer class="first-footer"><p>지금은 미리 준비한 값으로 진단 흐름을 보여 줍니다. 실제 장비를 재지 않습니다.</p><p>${esc(privacy)}</p><p>처음 한 번만 보입니다. 설정 → 정보 → 사용법에서 다시 볼 수 있습니다.</p></footer>
       </div>
     </main>
   </div>`;
@@ -413,16 +435,16 @@ export function ledGuideHTML() {
     + (hi ? `<rect x="${x - 27}" y="109" width="54" height="54" rx="9" style="fill:none;stroke:var(--accent);stroke-width:2"/>` : '')
     + `<text x="${x}" y="196" text-anchor="middle" style="fill:${hi ? 'var(--accent)' : 'var(--text-muted)'};font:${hi ? 700 : 400} 13px var(--font-ui)">${label}</text>`;
   const antenna = (x, deg) => `<rect x="${x - 5}" y="14" width="10" height="76" rx="5" transform="rotate(${deg} ${x} 88)" style="fill:var(--bg-input);stroke:var(--border-strong)"/>`;
-  return `<svg viewBox="0 0 440 226" role="img" aria-label="공유기 그림. 안테나가 두 개 달린 납작한 상자 앞면에 표시등이 네 개 있고, 왼쪽에서 두 번째, 지구본 모양 아래의 불이 인터넷 표시등이에요." style="width:100%;height:auto">
+  return `<svg viewBox="0 0 440 226" role="img" aria-label="공유기 그림. 안테나가 두 개 달린 납작한 상자 앞면에 표시등이 네 개 있고, 왼쪽에서 두 번째, 지구본 모양 아래의 불이 인터넷 표시등입니다." style="width:100%;height:auto">
     ${antenna(84, -9)}${antenna(356, 9)}
     <path d="M56 84 H384 L412 104 H28 Z" style="fill:var(--bg-input);stroke:var(--border-strong);stroke-linejoin:round"/>
     <path d="M150 92 h140 M142 98 h156" style="stroke:var(--border-strong);stroke-width:1.5;stroke-linecap:round"/>
     <rect x="28" y="104" width="384" height="64" rx="10" style="fill:var(--bg-base);stroke:var(--border-strong)"/>
     <path d="M62 168 v6 h22 v-6 M356 168 v6 h22 v-6" style="fill:none;stroke:var(--border-strong)"/>
     ${col(95, 'power', '전원', true)}${col(180, 'globe', '인터넷', true, true)}${col(265, 'wifi', '와이파이', true)}${col(350, 'lan', 'LAN', false)}
-    <text x="180" y="216" text-anchor="middle" style="fill:var(--accent);font:400 12px var(--font-ui)">이 불을 봐주세요</text>
+    <text x="180" y="216" text-anchor="middle" style="fill:var(--accent);font:400 12px var(--font-ui)">이 불 확인</text>
   </svg>
-  <p class="foot" style="margin:0 0 var(--space-2)">지구본 모양이거나 Internet · WAN이라고 적혀 있어요. 공유기 앞면이나 윗면에 있어요.</p>
-  <div class="lic"><div class="metric ok"><span class="k">흰색·초록색·파란색·보라색 등으로 켜져 있어요</span><span class="v">켜져 있어요</span></div><div class="metric bad"><span class="k">불이 없거나 빨간색이에요</span><span class="v">꺼져 있어요</span></div></div>
-  <p class="foot">기종마다 순서와 모양이 조금씩 달라요. 전원 표시등은 빨간색이 정상인 기종도 있고, 안테나가 안 보이는 기종도 있어요. 표시등을 끄는 스위치가 있는 기종도 있어서, 모든 불이 꺼져 있으면 뒷면·옆면 스위치도 봐 주세요. 못 찾겠으면 "잘 모르겠어요"를 골라도 돼요.</p>`;
+  <p class="foot" style="margin:0 0 var(--space-2)">지구본 모양이거나 Internet · WAN이라고 적혀 있습니다. 공유기 앞면이나 윗면에 있습니다.</p>
+  <div class="lic"><div class="metric ok"><span class="k">흰색·초록색·파란색·보라색 등으로 켜짐</span><span class="v">켜져 있음</span></div><div class="metric bad"><span class="k">불이 없거나 빨간색</span><span class="v">꺼져 있음</span></div></div>
+  <p class="foot">기종마다 순서와 모양이 조금씩 다릅니다. 전원 표시등은 빨간색이 정상인 기종도 있고, 안테나가 안 보이는 기종도 있습니다. 표시등을 끄는 스위치가 있는 기종도 있으므로, 모든 불이 꺼져 있으면 뒷면·옆면 스위치도 확인합니다. 못 찾겠으면 "잘 모르겠음"을 고르면 됩니다.</p>`;
 }

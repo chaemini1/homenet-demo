@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=1253c0e1';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answerCardHTML, whyAskingHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=1253c0e1';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=d3dcecc5';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=d3dcecc5';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
+const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
 const SETTINGS_KEY = 'homenet.settings', INTRO_KEY = 'homenet.introSeen';
 const demoMode = document.documentElement.dataset.mode === 'demo';
 const autoScanEnabled = () => {
@@ -30,7 +30,7 @@ function applyTheme(pref) {
 const storedTheme = () => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').theme || 'dark'; } catch { return 'dark'; } };
 applyTheme(storedTheme());
 lightMQ.addEventListener('change', () => { if (storedTheme() === 'auto') applyTheme('auto'); });
-const scenario = new URLSearchParams(location.search).get('scenario') === 'outside' ? 'outside' : 'wifi';
+const scenario = ['outside', 'normal', 'followup'].find(s => s === new URLSearchParams(location.search).get('scenario')) ?? 'wifi';
 // 데모 빌드의 예시 링크(build-static.py가 넣음): 지금 보고 있는 예시를 표시. 서버 모드엔 이 링크가 없다
 document.querySelectorAll('[data-scenario]').forEach(a => { if (a.dataset.scenario === scenario) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); } });
 
@@ -65,9 +65,10 @@ export const SCREENS = {
   }),
   question: p => ({
     rail: railStepsHTML(p.rail.steps),
-    stage: pathCardHTML(p.path) + whyAskingHTML(p.why) + headlineHTML(p.headline)
-      + `<div class="answers">${p.answers.map(a => answerCardHTML(a, a.id === state.selectedAnswer)).join('')}</div>`
-      + `<button type="button" class="ghost link" data-event="led_guide">${esc(p.link)}</button>`
+    stage: pathCardHTML(p.path) + progressHTML(p.rail.steps) + (p.why ? whyAskingHTML(p.why, p.path.conclusion?.text) : '') + headlineHTML(p.headline)
+      + (p.text_input ? textInputHTML(p.text_input, state.text) : '')
+      + answersHTML(p.answers, state.selectedAnswer)
+      + (p.link ? `<button type="button" class="ghost link" data-event="led_guide">${esc(p.link)}</button>` : '')   // 표시등 그림은 표시등 질문에만
       + '<div class="spacer"></div>'
       + actionsHTML({ ...p.actions, primary: p.actions.primary && { ...p.actions.primary, disabled: !state.selectedAnswer } }),
   }),
@@ -91,10 +92,15 @@ function ago() {
   const s = Math.round((Date.now() - state.checkedAt) / 1000);
   return s < 10 ? '방금' : s < 60 ? `${s}초 전` : `${Math.floor(s / 60)}분 전`;
 }
+// 설정 "벽에서 나오는 선 = 공유기로 바로": 모뎀 없이 회선이 공유기로 바로 들어오는 집(KT·LG U+ 안내에 있음)
+const noModem = () => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').wall === 'direct'; } catch { return false; } };
 function localize(obj) {
   const { by_isp, ...base } = obj;
   const pick = by_isp && Object.hasOwn(by_isp, ispKey()) ? by_isp[ispKey()] : {};
-  return JSON.parse(JSON.stringify({ ...base, ...pick }).replaceAll('{ago}', ago()));
+  const out = JSON.parse(JSON.stringify({ ...base, ...pick }).replaceAll('{ago}', ago()));
+  // wall 칸 = 공유기 바깥, 통신사 앞 구간. 모뎀이 없는 집에도 벽 단자와 그 선은 있으므로 칸은 두고 이름만 집에 맞춘다
+  if (out.path?.segments) out.path.segments = out.path.segments.map(s => s.key === 'wall' ? { ...s, label: noModem() ? '벽 단자' : '모뎀' } : s);
+  return out;
 }
 // 상단 통신사 라벨과 고객센터 버튼 (통신사를 모르면 "통신사 고르기").
 // 홈 상태가 아직 없으면(#settings·#records로 바로 열거나 거기서 새로고침) 한 번 받아 와서 그린다. 실패하면 빈칸 그대로
@@ -110,11 +116,17 @@ function paintTopIsp() {
 let paintedKey = null;
 function paint({ rail, stage }, key) {
   if (state.view === 'intro') return;
+  // 다시 그리면 포커스가 body로 떨어진다: 같은 화면이면 같은 data-* 컨트롤로 돌려놓는다
+  const had = document.activeElement?.closest('#rail, #stage') && document.activeElement;
+  const back = had && [...had.attributes].filter(a => a.name.startsWith('data-')).map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
   $('#rail').innerHTML = rail; $('#stage').innerHTML = stage;
+  $('.app').dataset.screen = key;   // 휴대폰 CSS가 화면별 배치(탭 막대·순서·숨김)를 고르는 이름표
   $('#rail').classList.toggle('collapsed', key === 'expert' && state.railCollapsed);      // 접힌 추론 로그는 전문가 콘솔에서만
   const el = $('#stage');
   el.classList.remove('enter');
-  if (key === paintedKey) return;
+  if (key === paintedKey) { if (back) document.querySelector(`#rail ${back}, #stage ${back}`)?.focus(); return; }
+  // 새 화면: 제목으로 포커스를 옮겨 읽기 도구가 바뀐 화면을 읽게 한다 (첫 화면은 그대로)
+  if (paintedKey !== null) { const h = el.querySelector('h1'); if (h) { h.tabIndex = -1; h.focus(); } }
   paintedKey = key;
   void el.offsetWidth;
   el.classList.add('enter');
@@ -132,7 +144,7 @@ function showError(where, e, retry, label = '다시 시도') {
 // 무대를 오류로 바꾸는 게 중요하다: 세션만 버리고 진단 화면을 두면 그 화면 버튼이 눌러도 아무 일 없는 버튼이 된다.
 function sessionLost(home = showHome) {
   state.session = null;
-  showError('#stage', new Error('진행 중이던 진단을 서버에서 찾을 수 없어요(서버가 다시 시작됐을 수 있어요). 처음부터 다시 진단해 주세요.'), home, '홈으로');
+  showError('#stage', new Error('진행 중이던 진단을 서버에서 찾을 수 없습니다(서버가 다시 시작됐을 수 있습니다). 처음부터 다시 진단해야 합니다.'), home, '홈으로');
 }
 // 어디서도 잡지 않은 비동기 오류(예: 받은 데이터를 그리다 난 예외) → "불러오는 중…"에 멈추지 않게 보여 주고, 재시도는 홈으로.
 // 이미 오류 안내가 떠 있으면 덮지 않는다: 더 구체적인 문구와 재시도(하던 진단으로 돌아가기 등)를 지우지 않게.
@@ -154,7 +166,7 @@ function setActiveNav(view) {
   document.documentElement.classList.remove('intro-arrived');
   document.documentElement.classList.toggle('intro-returning', view === 'intro' && introReturnMotion);
   introReturnMotion = false;
-  document.querySelectorAll('[data-nav]').forEach(el => el.classList.toggle('on', el.dataset.nav === view));
+  document.querySelectorAll('[data-nav]').forEach(el => { const on = el.dataset.nav === view; el.classList.toggle('on', on); if (on) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); });   // 화면 읽기 프로그램에도 지금 탭을 알린다
   // 전문가 콘솔은 상단바가 다르다: 일반 그룹 ↔ 전문가 그룹 전환. 일반 상단바의 "전문가 모드" 칩은 설정이 켜져 있을 때만.
   const expert = view === 'expert';
   $('#nav-normal').hidden = expert; $('#nav-expert').hidden = !expert;
@@ -187,7 +199,7 @@ export async function showHome(check = autoScanEnabled()) {
   if (shouldShowIntro()) return showIntro();
   setActiveNav('home');
   const visit = viewVersion;
-  clearTimeout(state.timer); state.session = null; state.selectedAnswer = null;
+  clearTimeout(state.timer); state.session = null; state.selectedAnswer = null; state.text = '';
   // 자동 점검 OFF로 화면만 오간 경우, 사용자가 직접 확인한 결과와 시각은 그대로 둔다.
   if (!check && state.status && state.checkedAt !== null) { paintHome(); return; }
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
@@ -209,7 +221,8 @@ async function showIntro() {
   page.innerHTML = firstPage({ autoScan: autoScanEnabled(), demo: demoMode });
   window.scrollTo(0, 0);
   // 표지를 여는 경우에만 SUITE를 준비한다. 제목이 대체 글꼴에서 뒤늦게 바뀌는 흔들림을 막는다.
-  try { await document.fonts.load('500 64px "SUITE Variable"'); } catch { /* 로컬 글꼴을 못 읽으면 Gothic A1 대체 글꼴로 표시 */ }
+  // 느린 연결에서 524KB 글꼴을 다 기다리면 표지가 5초 넘게 검다: 1초까지만 기다린다
+  try { await Promise.race([document.fonts.load('500 64px "SUITE Variable"'), new Promise(r => setTimeout(r, 1000))]); } catch { /* 로컬 글꼴을 못 읽으면 Gothic A1 대체 글꼴로 표시 */ }
   if (visit !== viewVersion) return;
   page.classList.add('intro-ready');
 }
@@ -419,7 +432,7 @@ function revealMeasuring(p, n) {
 export async function send(event, value = null) {
   if (!state.session || state.busy) return;
   state.busy = true;
-  try { const r = await advance(state.session.session_id, event, value); state.session = r; state.selectedAnswer = null; showScreen(r.payload); }
+  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.selectedAnswer = null; state.text = ''; showScreen(r.payload); }
   catch (e) {
     if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
@@ -467,6 +480,15 @@ document.addEventListener('keydown', e => {
 });
 
 // 이벤트 위임: 화면 코드는 data-event만 붙인다. "어디로 갈지"는 서버가 정한다.
+// 글 답: 글을 쓰면 답이 'text'로 바뀐다. 다시 그리면 입력 중인 칸의 커서가 사라지므로 버튼·카드·글자 수만 직접 고친다
+document.addEventListener('input', e => {
+  if (e.target.id !== 'answer-text') return;
+  state.text = e.target.value;
+  state.selectedAnswer = state.text.trim() ? 'text' : state.selectedAnswer === 'text' ? null : state.selectedAnswer;
+  $('#answer-count').textContent = `${[...state.text].length}/${e.target.maxLength}자`;
+  document.querySelectorAll('#stage .answer').forEach(a => { const on = a.dataset.answer === state.selectedAnswer; a.classList.toggle('selected', on); a.setAttribute('aria-pressed', on); });
+  const next = $('#stage [data-event="answer"]'); if (next) next.disabled = !state.selectedAnswer;
+});
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-event],[data-answer],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
@@ -568,13 +590,13 @@ export function onEvent(event, el) {
     case 'close_sheet': return $('#sheet').close();
     case 'intro': return route('intro');
     case 'intro_start': return startFromIntro();
-    case 'led_guide': return openSheet('인터넷 표시등은 여기 있어요', ledGuideHTML());
+    case 'led_guide': return openSheet('인터넷 표시등 위치', ledGuideHTML());
     case 'kg_general': return openKgSheet(el.textContent);
     case 'demo_help': { const t = document.getElementById('demo-help'); return t && openSheet(t.dataset.title, t.innerHTML); }   // 데모 빌드만(build-static.py가 <template>을 넣는다)
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':
-      if (!confirm('진단 기록을 모두 지울까요? 되돌릴 수 없어요.')) return;
-      return clearRecords().then(() => { if (state.status) state.status.recent = []; el.textContent = '지웠어요'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했어요: ${e.message}`), showSettings));
+      if (!confirm('진단 기록 전체 삭제 (되돌릴 수 없음)')) return;
+      return clearRecords().then(() => { if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했어요: ${e.message}`), showSettings));
     case 'records': return finish('records');          // 완료 화면 "진단 기록 보기": 끝내야 기록에 남으므로 닫고 간다
     // 전화는 render.js가 tel: 링크로 그려 브라우저가 처리한다. 번호를 모르면(미선택·기타) 버튼이 이것으로 바뀐다
     case 'pick_isp': state.pickIsp = true; return route('settings');

@@ -39,7 +39,7 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
     const s = session ? SESSIONS.get(session) : LAST;
     if (!s) return { topbar: x.topbar, log: { ...x.log, range: '', entries: [] }, empty: x.idle, actions: { ...x.actions, secondary: null } };
     const fill = o => JSON.parse(JSON.stringify(o).split('{answer}').join(s.answer ?? ''));   // 파이썬도 따옴표를 이스케이프하지 않는다 — 답 제목에 " 가 들어가면 양쪽 다 깨진다
-    const entries = s.history.flatMap(([key, time]) => fill(x.fragments[key]).map(e => ({ time, ...e })));
+    const entries = s.history.flatMap(([key, time]) => fill(has(x.fragments, key) ? x.fragments[key] : []).map(e => ({ time, ...e })));   // 전문가 데이터가 없는 화면(세부 질문)은 건너뛴다
     const hist = s.history.map(([key]) => key), tones = new Map();             // Map = 넣은 순서, 덮어써도 자리 유지 (파이썬 dict와 같음)
     const seg = hist.slice(Math.max(0, hist.lastIndexOf('scanning')));         // restart·back → scanning이면 거기서부터 새 경로 (로그는 계속 쌓임)
     seg.forEach((key, i) => {
@@ -49,7 +49,8 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
         else if (tones.has(p.id)) tones.set(p.id, 'out');                        // 기각: 이미 경로에 있는 가설만 흐리게 남긴다
       }
     });
-    return { topbar: x.topbar, log: { ...x.log, range: `${entries[0].time} → ${entries.at(-1).time}`, entries }, ...fill(x.screens[s.key]),
+    const body = hist.findLast(k => has(x.screens, k));                        // 본문: 전문가 데이터가 있는 가장 최근 화면 (main.py와 같은 shortcut)
+    return { topbar: x.topbar, log: { ...x.log, range: `${entries[0].time} → ${entries.at(-1).time}`, entries }, ...fill(x.screens[body]),
              path: [...tones].map(([id, tone]) => ({ id, tone })), actions: x.actions };
   }
   function payload(key, i) {
@@ -66,16 +67,17 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
   function start(body) {
     if (!isObj(body)) invalid('body');
     const scenario = body.scenario === undefined ? 'wifi' : body.scenario;     // 없으면 기본값, null은 422 (pydantic Literal)
-    if (scenario !== 'wifi' && scenario !== 'outside') invalid('scenario');
+    if (!['wifi', 'outside', 'normal', 'followup'].includes(scenario)) invalid('scenario');
     const first = load('scenarios.json')[scenario].start, id = newId();       // 422 검사가 id 발급보다 먼저 (파이썬은 검증을 통과해야 함수가 불린다)
-    SESSIONS.set(id, { scenario, key: first, step_index: 0, history: [[first, now()]] });
+    SESSIONS.set(id, { scenario, key: first, step_index: 0, history: [[first, now()]], stack: [] });   // stack = 지나온 길 ('이전'용)
     return reply(id, SESSIONS.get(id));
   }
   function advance(id, body) {                                                   // 순서: 본문 422 → 세션 404 → finish → 전이
     if (!isObj(body)) invalid('body');
-    const { event, value = null } = body;
+    const { event, value = null, text = null } = body;
     if (typeof event !== 'string') invalid('event');                             // pydantic 2는 숫자를 str로 바꿔 주지 않는다
     if (value !== null && typeof value !== 'string') invalid('value');
+    if (text !== null && typeof text !== 'string') invalid('text');
     const s = SESSIONS.get(id);
     if (!s) fail(404, 'SESSION_NOT_FOUND', `세션 ${id} 없음`);
     if (event === 'finish') {                                                    // 어느 화면에서든 통과 (현행 A-4)
@@ -84,7 +86,13 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
       if (t && Object.keys(t).length) records().unshift({ id, when: `오늘 ${s.history.at(-1)[1].slice(0, 5)}`, ...t });   // 파이썬 `if t:` — 빈 dict는 거짓
       return reply(id, s);
     }
-    const table = load('scenarios.json')[s.scenario].transitions[s.key] ?? {}, key = s.key;
+    const scen = load('scenarios.json')[s.scenario], table = scen.transitions[s.key] ?? {}, key = s.key;
+    const box = load('screens.json')[key].text_input;
+    if (text !== null || (box && value === 'text')) {                          // 사용자가 쓴 글: 길이·빈칸 검사 (main.py와 같음, 글자 수는 파이썬 len처럼 코드포인트)
+      if (!(box && event === 'answer' && value === 'text' && (text ?? '').trim() && [...text].length <= box.max))
+        fail(422, 'INVALID_TEXT', `글 답은 입력칸이 있는 화면에서 1~${box ? box.max : 0}자로 보내야 해요`);
+      s.text = text.trim();                                                      // 목업은 분류하지 않고 저장만 (분류는 백엔드)
+    }
     if (event === 'step_failed' && has(table, 'exhausted')) {                   // 조치 화면: 다음 단계로, 다 해봤으면 exhausted로
       s.step_index += 1;
       if (s.step_index >= load('screens.json')[key].steps.length) [s.key, s.step_index] = [table.exhausted, 0];
@@ -94,9 +102,15 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
         if (!has(nxt, value)) fail(409, 'INVALID_EVENT', `'${key}' 화면의 답은 [${Object.keys(nxt).map(k => `'${k}'`).join(', ')}] 중 하나여야 해요`);   // 파이썬 list repr
         nxt = nxt[value];
       }
+      if (nxt === '@prev') nxt = s.stack.pop();                                  // 세부 질문의 '이전': 지나온 길을 한 칸 되돌린다
+      else {
+        const g = scen.guard, walked = [...s.stack, key];                         // KG 규칙: 같은 질문 재방문·분류 질문 8개 초과 → WFU14 (main.py와 같음)
+        if (g && g.questions.includes(nxt) && (walked.includes(nxt) || walked.filter(k => g.questions.includes(k)).length >= g.max)) nxt = g.to;
+        if (nxt !== key) s.stack.push(key);
+      }
       [s.key, s.step_index] = [nxt, 0];
     } else fail(409, 'INVALID_EVENT', `'${key}' 화면에서는 '${event}' 이벤트를 받을 수 없어요`);
-    if (event === 'answer') { s.answer = load('screens.json').question_outside.answers.find(a => a.id === value)?.title ?? (value || ''); s.answer_id = value; }
+    if (event === 'answer') { s.answer = load('screens.json')[key].answers?.find(a => a.id === value)?.title ?? (value || ''); s.answer_id = value; }   // 방금 답한 질문 화면에서 답 이름을 찾는다
     if (s.key !== key) s.history.push([s.key, now()]);                          // 자기 전이(call·records)는 이력에 안 쌓인다
     return reply(id, s);
   }

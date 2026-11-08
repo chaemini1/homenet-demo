@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>홈넷 진단 도우미 히어로</title>
+<!-- 앱(app/frontend)의 Gothic A1 조각을 그대로 쓴다: 이 페이지는 app/frontend/hero/ 에 빌드된다 -->
+<link rel="stylesheet" href="../fonts.css" >
+<style>*{box-sizing:border-box}html,body{margin:0;background:#000;overflow:hidden}html[data-theme=light],html[data-theme=light] body{background:#fff}</style>
+<!-- 첫 화면부터 부모 테마의 바탕색을 쓴다 (라이트에서 검은 번쩍임 방지) -->
+<script>try{document.documentElement.dataset.theme=parent.document.documentElement.dataset.theme}catch(e){}</script>
+  <script type="module" crossorigin src="./hero.js"></script>
+  <link rel="stylesheet" crossorigin href="./hero.css">
+</head>
+<body>
+<!-- data-ss-fill: 스테이지가 iframe 폭을 끝까지 채운다 (소개 페이지가 iframe 비율을 맞춘다) -->
+<div id="root" data-ss-fill></div>
+</body>
+</html>
