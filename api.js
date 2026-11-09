@@ -3,9 +3,9 @@
 // 자동 감지(서버가 안 되면 데모로)는 하지 않는다: 서버 고장을 그럴듯한 예시 화면으로 덮는 침묵 실패가 되기 때문.
 export let demoBroken = false;   // true면 app.js가 재시도 버튼을 새로고침으로 바꾼다
 const demo = document.documentElement.dataset.mode === 'demo'
-  && Promise.all([import('./demo.js?v=d3dcecc5'), import('./fixtures.js?v=d3dcecc5')])
+  && Promise.all([import('./demo.js?v=f21669b6'), import('./fixtures.js?v=f21669b6')])
     // 브라우저가 실패한 import를 기억해서 다시 시도로는 안 풀린다 → 새로고침 안내 (demoBroken)
-    .catch(() => { demoBroken = true; throw new Error('데모 파일을 받지 못했어요. 새로고침(F5) 해 주세요'); })
+    .catch(() => { demoBroken = true; throw new Error('데모 파일을 받지 못했습니다. 새로고침(F5)해 주십시오'); })
     .then(([d, f]) => d.createServer(f.default));
 
 // check=false는 홈 정보만 조회한다. 자동 점검 OFF·상단 통신사 표시에서는 점검을 요청하지 않는다.
@@ -33,7 +33,7 @@ async function call(path, body) {
     if (!r.ok) throw toError(r.status, await r.json().catch(() => null));
     return await r.json();
   } catch (e) {
-    if (e.name === 'TimeoutError') throw new Error('서버 응답이 없어요');
+    if (e.name === 'TimeoutError') throw new Error('서버 응답이 없습니다');
     throw e;
   }
 }

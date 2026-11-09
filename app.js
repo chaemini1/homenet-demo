@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=d3dcecc5';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=d3dcecc5';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=f21669b6';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=f21669b6';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -152,7 +152,7 @@ window.addEventListener('unhandledrejection', e => {
   if ($('#stage [role="alert"]')) return;
   let msg = '알 수 없는 오류';
   try { if (e.reason != null) msg = e.reason.message || String(e.reason); } catch { /* toString이 없는 값 → 기본 문구 */ }
-  showError('#stage', new Error(`문제가 생겼어요: ${msg}`), showHome, '홈으로');
+  showError('#stage', new Error(`문제가 생겼습니다: ${msg}`), showHome, '홈으로');
 });
 
 // ---- 상단 탭 (홈/기록/설정): 진단 세션과 별개의 최상위 화면 라우팅 ----
@@ -208,7 +208,7 @@ export async function showHome(check = autoScanEnabled()) {
     if (visit !== viewVersion) return;
     state.status = status;
   } catch (e) {
-    if (visit === viewVersion) showError('#stage', new Error(`상태를 불러오지 못했어요: ${e.message}`), () => showHome(check));
+    if (visit === viewVersion) showError('#stage', new Error(`상태를 불러오지 못했습니다: ${e.message}`), () => showHome(check));
     return;
   }
   state.checkedAt = check ? Date.now() : null;
@@ -269,7 +269,7 @@ export async function showRecords() {
   const visit = viewVersion;
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
   try { const records = await getRecords(); if (visit !== viewVersion) return; state.records = records; }
-  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`기록을 불러오지 못했어요: ${e.message}`), showRecords); return; }
+  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`기록을 불러오지 못했습니다: ${e.message}`), showRecords); return; }
   state.recordsOpen = state.records.records[0]?.id ?? null;   // 첫 행은 펼쳐 놓는다 (Figma)
   paintRecords();
 }
@@ -293,7 +293,7 @@ export async function showSettings() {
   const visit = viewVersion;
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
   try { const settings = await getSettings(); if (visit !== viewVersion) return; state.settings = settings; }
-  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`설정을 불러오지 못했어요: ${e.message}`), showSettings); return; }
+  catch (e) { if (visit === viewVersion) showError('#stage', new Error(`설정을 불러오지 못했습니다: ${e.message}`), showSettings); return; }
   state.settingsValues = loadSettingsValues(state.settings);
   state.settingsActive = state.settings.sections[0].id;
   paintSettings();
@@ -304,7 +304,7 @@ export async function showSettings() {
 // 전문가 콘솔(WE1): 설정 "전문가 모드 켜기"나 상단 칩으로 들어오고, 상단 토글이나 "일반 화면으로 보기"로 나간다.
 // 진단 중에 들어오면 그 세션의 추론을 보여주고, 나갈 때 진단 화면으로 되돌아간다 (세션은 건드리지 않는다).
 // KG 카드는 경로(path)가 있을 때만 (빈 상태엔 없음). /kg 실패는 카드 자리에만 알리고 콘솔 나머지는 그대로 그린다
-const kgCard = () => state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했어요: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
+const kgCard = () => state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
 const kgKnown = () => state.kg && !state.kgErr && state.expert.path ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
 const paintExpert = () => {
   $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar);
@@ -391,7 +391,7 @@ export async function showExpert() {
   catch (e) {
     if (visit !== viewVersion) return;
     if (e.status === 404) return sessionLost(() => route('home'));   // /expert도 세션이 없으면 404 (주소가 #expert라 홈은 route로)
-    showError('#stage', new Error(`전문가 콘솔을 불러오지 못했어요: ${e.message}`), showExpert); return;
+    showError('#stage', new Error(`전문가 콘솔을 불러오지 못했습니다: ${e.message}`), showExpert); return;
   }
   state.kgErr = null;
   if (state.expert.path) await loadKg().catch(e => { state.kgErr = e.message; });
@@ -413,7 +413,7 @@ export function showScreen(raw) {
   const payload = localize(raw);
   setStatusPill(payload.status_pill);
   const render = SCREENS[payload.screen];
-  if (!render) { showError('#stage', new Error(`아직 만들지 않은 화면이에요: ${payload.screen}`), showHome); return; }
+  if (!render) { showError('#stage', new Error(`아직 만들지 않은 화면입니다: ${payload.screen}`), showHome); return; }
   paint(render(payload), payload.screen);
   clearTimeout(state.timer);
   if (payload.screen === 'scanning') revealMeasuring(payload, 1);
@@ -436,7 +436,7 @@ export async function send(event, value = null) {
   catch (e) {
     if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
-    showError('#stage', new Error(`진행하지 못했어요: ${e.message}`), () => state.session ? showScreen(state.session.payload) : showHome());
+    showError('#stage', new Error(`진행하지 못했습니다: ${e.message}`), () => state.session ? showScreen(state.session.payload) : showHome());
   }
   finally { state.busy = false; }
 }
@@ -451,7 +451,7 @@ async function start() {
   clearTimeout(state.timer);
   $('#stage').innerHTML = '<p class="state">진단 예시를 시작하는 중…</p>';
   try { state.session = await startDiagnosis(scenario); showScreen(state.session.payload); }
-  catch (e) { if (state.view !== 'intro') showError('#stage', new Error(`진단을 시작하지 못했어요: ${e.message}`), showHome); }
+  catch (e) { if (state.view !== 'intro') showError('#stage', new Error(`진단을 시작하지 못했습니다: ${e.message}`), showHome); }
   finally { state.starting = false; }
 }
 
@@ -557,7 +557,7 @@ function exportReport() {
 }
 async function exportRecords() {
   try { download(`homenet-records-${stamp()}.json`, JSON.stringify((await getRecords()).records, null, 2)); }
-  catch (e) { showError('#stage', new Error(`기록을 내보내지 못했어요: ${e.message}`), () => route(state.view)); }
+  catch (e) { showError('#stage', new Error(`기록을 내보내지 못했습니다: ${e.message}`), () => route(state.view)); }
 }
 // 시트: 브라우저 기본 <dialog> (Esc·포커스 가두기는 브라우저가 해준다). wide = 그림 시트(KG)
 function openSheet(title, body, wide = false) { const d = $('#sheet'); d.innerHTML = sheetHTML(title, body); d.classList.toggle('wide', wide); d.showModal(); }
@@ -573,7 +573,7 @@ async function openKgSheet(label) {
   } catch (e) {
     if (visit !== viewVersion) return;
     if (e.status === 404) return sessionLost();            // 시트에 "세션 … 없음"(id)을 띄우는 대신 send()와 같은 안내
-    openSheet(label, `<p class="state err" role="alert">그림을 불러오지 못했어요: ${esc(e.message)}</p>`, true);
+    openSheet(label, `<p class="state err" role="alert">그림을 불러오지 못했습니다: ${esc(e.message)}</p>`, true);
   } finally { state.sheetBusy = false; }
 }
 
@@ -596,7 +596,7 @@ export function onEvent(event, el) {
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':
       if (!confirm('진단 기록 전체 삭제 (되돌릴 수 없음)')) return;
-      return clearRecords().then(() => { if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했어요: ${e.message}`), showSettings));
+      return clearRecords().then(() => { if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했습니다: ${e.message}`), showSettings));
     case 'records': return finish('records');          // 완료 화면 "진단 기록 보기": 끝내야 기록에 남으므로 닫고 간다
     // 전화는 render.js가 tel: 링크로 그려 브라우저가 처리한다. 번호를 모르면(미선택·기타) 버튼이 이것으로 바뀐다
     case 'pick_isp': state.pickIsp = true; return route('settings');
