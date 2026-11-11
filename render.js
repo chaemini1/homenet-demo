@@ -385,6 +385,19 @@ export function kgGeneralHTML(kg, path = []) {
 
 // ==== 시트(<dialog>): 라이선스 목록, 표시등 위치 그림 ====
 export const sheetHTML = (title, body) => `<div class="chead big"><b id="sheet-title">${esc(title)}</b><div class="spacer"></div><button type="button" class="iconbtn" data-event="close_sheet" aria-label="닫기">✕</button></div>${body}`;
+// 정보 수집·이용 동의: 법 제15조② 네 가지(목적·항목·보유 기간·거부 권리와 불이익)와 기기 안에서만 처리한다는 사실. 문구를 바꾸면 app.js의 CONSENT_VERSION을 올린다
+// 닫기(✕)가 없다: 버튼 둘 중 하나를 고르게 한다. Esc는 '동의 안 함'과 같다
+export const consentHTML = () => `<form method="dialog" class="consent"><div class="chead big"><b id="sheet-title">정보 수집·이용 동의</b></div>
+<p class="lead">홈넷 진단 도우미(팀 ACK)가 점검과 진단을 위해 아래 정보를 수집합니다. 시작하기 전에 확인해 주십시오.</p>
+<dl tabindex="0" aria-label="동의 내용">
+<div><dt>수집 목적</dt><dd>집 인터넷에서 문제가 생긴 위치와 원인을 찾고 해결 방법을 안내합니다.</dd></div>
+<div><dt>수집 항목</dt><dd>공유기·통신사·인터넷·DNS의 응답 여부와 응답 시간, 와이파이 신호 세기, 송수신량과 오류 수, 세부 질문에서 고른 답과 직접 쓴 글(기기 제조사·모델·운영체제 포함), 진단 결과와 기록</dd></div>
+<div><dt>보유 기간</dt><dd><b>설정에서 진단 기록을 지울 때까지 보관합니다.</b></dd></div>
+<div><dt>처리 위치</dt><dd>집 안의 진단 기기에서만 처리하고 저장하며 외부 서버로 보내지 않습니다. 인터넷 연결을 확인할 때만 외부 주소에 응답 확인 신호를 보냅니다. 직접 쓰는 글에는 이름이나 전화번호 같은 개인정보를 적지 마십시오.</dd></div>
+<div><dt>동의하지 않을 권리</dt><dd>동의하지 않을 수 있습니다. 동의하지 않으면 점검과 진단을 쓸 수 없고, 사용법·기록·설정 화면은 그대로 볼 수 있습니다.</dd></div>
+</dl>
+<p class="fine">동의 여부는 이 브라우저에 저장되어 다음부터는 묻지 않습니다. 설정에서 진단 기록을 지우면 이 브라우저의 동의도 함께 철회됩니다.</p>
+<div class="actions"><button class="btn sec" value="no">동의 안 함</button><button class="btn pri" value="yes">동의함</button></div></form>`;
 export const licensesHTML = items => `<div class="lic">${items.map(i => `<div class="metric ok"><span class="k">${esc(i.name)}<small>${esc(i.use)}</small></span><span class="v">${esc(i.license)}</span></div>`).join('')}</div>`;
 // 첫 페이지는 고정 안내 문구. 실제 자동 점검 설정과 서버/정적 데모 모드에 맞춰 설명한다.
 export function firstPage({ autoScan = true, demo = false } = {}) {

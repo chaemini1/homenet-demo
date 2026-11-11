@@ -1,5 +1,5 @@
-@import url("tokens.css?v=f21669b6");
-@import url("first-page.css?v=f21669b6");
+@import url("tokens.css?v=3a08df0f");
+@import url("first-page.css?v=3a08df0f");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -257,6 +257,17 @@ button:disabled{cursor:default;opacity:.45}
 .sheet{background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-strong);border-radius:var(--radius-xl);padding:var(--space-6);width:min(520px,calc(100vw - 48px));max-height:80vh;overflow:auto}
 .sheet::backdrop{background:rgba(0,0,0,.6)}
 .sheet .chead.big{margin-bottom:var(--space-4)}
+/* 동의 팝업: 항목 이름은 작게, 내용은 본문 크기. 보유 기간만 굵게(시행령 제17조③ 중요한 내용) */
+.consent .lead{margin:0 0 var(--space-4);font-size:15px;line-height:1.6;color:var(--text-secondary)}
+.sheet:has(.consent){max-height:calc(100dvh - 48px);width:min(600px,calc(100vw - 48px))}   /* 동의 내용은 다 읽혀야 한다: 다른 시트(80vh)보다 높게 열어 웹에서는 스크롤 없이 보이게 */
+.consent{display:flex;flex-direction:column;max-height:calc(100dvh - 48px - 2*var(--space-6) - 2px)}   /* 그래도 낮은 화면이면 제목과 버튼은 두고 항목만 스크롤 */
+.consent dl{margin:0;min-height:0;overflow:auto;padding-bottom:var(--space-5);-webkit-mask-image:linear-gradient(#000 calc(100% - var(--space-5)),transparent);mask-image:linear-gradient(#000 calc(100% - var(--space-5)),transparent)}   /* 아래 끝을 흐리게: 내용이 더 있다는 표시. 끝까지 내리면 여백만 흐려진다 */
+@media (min-width:561px){ .consent dl > div{display:grid;grid-template-columns:7.5em 1fr;gap:var(--space-4)} .consent dt{margin:0;padding-top:2px} }   /* 웹: 항목 이름을 왼쪽에 두어 줄 수를 줄인다 */
+.consent dl > div{padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.consent dt{margin-bottom:var(--space-1);font-size:13px;font-weight:600;color:var(--text-muted)}
+.consent dd{margin:0;font-size:15px;line-height:1.6}
+.consent .fine{margin:var(--space-3) 0 var(--space-5);font-size:13px;line-height:1.5;color:var(--text-muted)}
+.consent .actions{justify-content:flex-end}
 .sheet .lic{margin-top:var(--space-3)} .sheet .k small{display:block;color:var(--text-muted);font-size:12px}
 
 /* ---- KG 그래프 (전문가 카드 · 일반 시트): 상태색 면 + 글리프 + 글자. 글로우·그림자·그라데이션·움직임 없음 ---- */

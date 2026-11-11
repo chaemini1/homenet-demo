@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=f21669b6';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=f21669b6';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=3a08df0f';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=3a08df0f';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -195,11 +195,25 @@ window.addEventListener('hashchange', () => render(viewFromHash()));
 // index.html의 기본 pill을 그대로 둔다 (문구를 여기 또 적지 않는다). 통신사 라벨·버튼은 paintTopIsp가 없으면 받아 온다.
 const syncTopPill = () => { if (state.status) setStatusPill(state.status.status_pill); paintTopIsp(); };
 
+// 정보 수집·이용 동의: 측정(점검·진단) 전에 한 번. 문구가 바뀌면 버전을 올려 다시 묻는다
+const CONSENT_KEY = 'homenet.consent', CONSENT_VERSION = '1';
+let consentGiven = false, consentDeclined = false;   // 저장이 막혀도 이번 방문에서는 다시 묻지 않는다. 거절 뒤에는 사용자가 버튼을 누를 때만 다시 묻는다(반복 팝업 금지)
+const hasConsent = () => { if (consentGiven) return true; try { return localStorage.getItem(CONSENT_KEY) === CONSENT_VERSION; } catch { return false; } };
+async function askConsent() {
+  const d = $('#sheet'); if (d.open) return false;
+  d.innerHTML = consentHTML(); d.classList.remove('wide'); d.returnValue = '';
+  const ok = await new Promise(resolve => { d.addEventListener('close', () => resolve(d.returnValue === 'yes'), { once: true }); d.showModal(); });
+  consentGiven = ok; consentDeclined = !ok;
+  if (ok) { try { localStorage.setItem(CONSENT_KEY, CONSENT_VERSION); } catch { /* 저장 불가여도 이번 방문은 동의로 본다 */ } }
+  return ok;
+}
+
 export async function showHome(check = autoScanEnabled()) {
   if (shouldShowIntro()) return showIntro();
   setActiveNav('home');
   const visit = viewVersion;
   clearTimeout(state.timer); state.session = null; state.selectedAnswer = null; state.text = '';
+  const ask = check && !hasConsent(); if (ask) check = false;   // 동의 전에는 측정 없는 홈을 먼저 그리고 그 위에서 묻는다
   // 자동 점검 OFF로 화면만 오간 경우, 사용자가 직접 확인한 결과와 시각은 그대로 둔다.
   if (!check && state.status && state.checkedAt !== null) { paintHome(); return; }
   $('#rail').innerHTML = '<p class="state" role="status">불러오는 중…</p>'; $('#stage').innerHTML = '';
@@ -213,6 +227,7 @@ export async function showHome(check = autoScanEnabled()) {
   }
   state.checkedAt = check ? Date.now() : null;
   paintHome();
+  if (ask && !consentDeclined && await askConsent() && visit === viewVersion) return showHome(true);
 }
 async function showIntro() {
   setActiveNav('intro'); clearTimeout(state.timer);
@@ -579,8 +594,8 @@ async function openKgSheet(label) {
 
 export function onEvent(event, el) {
   switch (event) {
-    case 'start': return start();
-    case 'recheck_home': return showHome(true);
+    case 'start': return hasConsent() ? start() : askConsent().then(ok => ok && start());
+    case 'recheck_home': consentDeclined = false; return showHome(true);
     case 'restart': return start();
     case 'finish': return finish();
     case 'answer': return send('answer', state.selectedAnswer);
@@ -596,7 +611,8 @@ export function onEvent(event, el) {
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':
       if (!confirm('진단 기록 전체 삭제 (되돌릴 수 없음)')) return;
-      return clearRecords().then(() => { if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했습니다: ${e.message}`), showSettings));
+      return clearRecords().then(() => { consentGiven = false; try { localStorage.removeItem(CONSENT_KEY); } catch { /* 저장 불가면 이번 방문 동의만 푼다 */ }   // 기록 지우기 = 동의 철회
+        if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했습니다: ${e.message}`), showSettings));
     case 'records': return finish('records');          // 완료 화면 "진단 기록 보기": 끝내야 기록에 남으므로 닫고 간다
     // 전화는 render.js가 tel: 링크로 그려 브라우저가 처리한다. 번호를 모르면(미선택·기타) 버튼이 이것으로 바뀐다
     case 'pick_isp': state.pickIsp = true; return route('settings');
