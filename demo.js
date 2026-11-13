@@ -53,16 +53,18 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
     return { topbar: x.topbar, log: { ...x.log, range: `${entries[0].time} → ${entries.at(-1).time}`, entries }, ...fill(x.screens[body]),
              path: [...tones].map(([id, tone]) => ({ id, tone })), actions: x.actions };
   }
-  function payload(key, i) {
+  function payload(scenario, key, i) {
     const p = load('screens.json')[key];
     if (p.screen === 'steps') {
       p.steps.forEach((st, j) => { st.state = j < i ? 'failed' : j === i ? 'todo' : 'upcoming'; });
       p.rail.steps[2].answer = `${i + 1} / ${p.steps.length} 단계`;
       p.path.note = p.step_note.split('{n}').join(String(i + 1)); delete p.step_note;
     }
+    const ctx = load('scenarios.json')[scenario].followup_context;
+    if (ctx && key.startsWith('followup_')) { p.rail.steps[0].answer = ctx.rail_answer; p.path = ctx.path; }   // main.py와 같음 (load가 매번 새 사본)
     return p;
   }
-  const reply = (id, s) => ({ session_id: id, scenario: s.scenario, payload: payload(s.key, s.step_index) });
+  const reply = (id, s) => ({ session_id: id, scenario: s.scenario, payload: payload(s.scenario, s.key, s.step_index) });
 
   function start(body) {
     if (!isObj(body)) invalid('body');
@@ -95,12 +97,13 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
     }
     if (event === 'step_failed' && has(table, 'exhausted')) {                   // 조치 화면: 다음 단계로, 다 해봤으면 exhausted로
       s.step_index += 1;
-      if (s.step_index >= load('screens.json')[key].steps.length) [s.key, s.step_index] = [table.exhausted, 0];
-    } else if (has(table, event) && event !== 'exhausted') {
+      if (s.step_index >= load('screens.json')[key].steps.length) { s.stack.push(key); [s.key, s.step_index] = [table.exhausted, 0]; }   // main.py와 같음: '이전'이 조치 화면으로
+    } else if (has(table, event) && event !== 'exhausted' && event !== 'vague') {
       let nxt = table[event];
       if (nxt !== null && typeof nxt === 'object') {                             // 사람의 답에 따라 갈라지는 전이
         if (!has(nxt, value)) fail(409, 'INVALID_EVENT', `'${key}' 화면의 답은 [${Object.keys(nxt).map(k => `'${k}'`).join(', ')}] 중 하나여야 해요`);   // 파이썬 list repr
         nxt = nxt[value];
+        if (value === 'text' && has(table, 'vague') && [...s.text].length < 10) nxt = table.vague;   // main.py와 같음: 짧은 글은 한 번 다시 묻는다(목업 규칙)
       }
       if (nxt === '@prev') nxt = s.stack.pop();                                  // 세부 질문의 '이전': 지나온 길을 한 칸 되돌린다
       else {
@@ -112,7 +115,9 @@ export function createServer(F, { now = clock, newId = hex8 } = {}) {
     } else fail(409, 'INVALID_EVENT', `'${key}' 화면에서는 '${event}' 이벤트를 받을 수 없어요`);
     if (event === 'answer') { s.answer = load('screens.json')[key].answers?.find(a => a.id === value)?.title ?? (value || ''); s.answer_id = value; }   // 방금 답한 질문 화면에서 답 이름을 찾는다
     if (s.key !== key) s.history.push([s.key, now()]);                          // 자기 전이(call·records)는 이력에 안 쌓인다
-    return reply(id, s);
+    const r = reply(id, s);
+    if (s.key === table.vague) r.payload.text_input.value = s.text;             // 다시 묻는 화면: 앞에서 쓴 글을 입력칸에
+    return r;
   }
   function route(method, path, body) {
     const u = new URL(path, 'http://demo'), p = u.pathname, m = p.match(/^\/diagnose\/([^/]+)\/advance$/);

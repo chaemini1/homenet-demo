@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=3a08df0f';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=3a08df0f';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=ffebefcb';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=ffebefcb';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -447,7 +447,7 @@ function revealMeasuring(p, n) {
 export async function send(event, value = null) {
   if (!state.session || state.busy) return;
   state.busy = true;
-  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.selectedAnswer = null; state.text = ''; showScreen(r.payload); }
+  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text ? 'text' : null; showScreen(r.payload); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
   catch (e) {
     if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
