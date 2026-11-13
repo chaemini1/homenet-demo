@@ -1,5 +1,5 @@
-@import url("tokens.css?v=ffebefcb");
-@import url("first-page.css?v=ffebefcb");
+@import url("tokens.css?v=b54b5f34");
+@import url("first-page.css?v=b54b5f34");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
