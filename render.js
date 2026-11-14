@@ -33,7 +33,8 @@ export function pathCardHTML(p) {
     <div class="conclusion">${dotHTML(p.conclusion.tone)}<p>${esc(p.conclusion.text)}</p></div>
   </section>`;
 }
-export const metricRowHTML = m => `<div class="metric ${tone(m.status)}"><span class="k">${esc(m.label)}</span><span class="v">${m.before ? `<span class="was"><span class="sr">이전 값 </span>${esc(m.before)}</span><span class="arrow" aria-hidden="true">→</span><span class="sr">지금 </span>` : ''}${esc(m.value)}</span>${dotHTML(m.status, true)}</div>`;
+// long: 측정값이 아니라 문장인 값(KG 원인·조치 등). 휴대폰에서 값을 이름 아래 한 줄 전체로 내린다(app.css)
+export const metricRowHTML = m => `<div class="metric ${tone(m.status)}${[...String(m.value ?? '')].length > 20 ? ' long' : ''}"><span class="k">${esc(m.label)}</span><span class="v">${m.before ? `<span class="was"><span class="sr">이전 값 </span>${esc(m.before)}</span><span class="arrow" aria-hidden="true">→</span><span class="sr">지금 </span>` : ''}${esc(m.value)}</span>${dotHTML(m.status, true)}</div>`;
 // 근거 출처: 행에 sources가 있을 때만 그 행 바로 아래에 그린다. 응답에서 온 주소라 https://만 링크로 만든다.
 const SOURCE_KIND = { official: '공식 문서 요약', applied: '프로젝트 적용' };
 const sourceHTML = s => {
@@ -62,11 +63,25 @@ export function stepConfirmHTML(s, index) {
   </div>`;
 }
 export const stepInfoHTML = s => `<div class="step"><div class="head"><div class="num">${esc(s.num)}</div><div><div class="t">${esc(s.title)}</div><div class="h">${esc(s.hint)}</div></div></div></div>`;
-export const answerCardHTML = (a, selected) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}" aria-pressed="${!!selected}"><div class="ah"><div class="at">${esc(a.title)}</div><div class="chk" aria-hidden="true">✓</div></div>${a.hint ? `<div class="hint">${esc(a.hint)}</div>` : ''}</button>`;
+export const answerCardHTML = (a, selected, rank) => `<button type="button" class="answer${selected ? ' selected' : ''}" data-answer="${esc(a.id)}" aria-pressed="${!!selected}"><div class="ah">${a.score ? `<span class="rank" aria-hidden="true">${rank}</span>` : ''}<div class="at">${esc(a.title)}</div>${a.score ? `<span class="score">${esc(a.score)}</span>` : ''}<div class="chk" aria-hidden="true">✓</div></div>${a.hint ? `<div class="hint">${esc(a.hint)}</div>` : ''}</button>`;
 // 열 수는 답 개수로 고른다: 마지막 줄에 카드 한 장만 남지 않게 (4장 2×2, 7·8장 4열, 그 밖은 최대 3열). 959px 아래는 CSS가 1열로 쌓는다
 const ANSWER_COLS = { 4: 2, 7: 4, 8: 4 };
 // 글로 받는 답(KG WFU14). 글자 수는 서버처럼 코드포인트로 센다
 export const textInputHTML = (box, text = '') => `<div class="text-answer"><textarea id="answer-text" rows="3" maxlength="${box.max}" placeholder="${esc(box.placeholder)}" aria-label="설명 입력" aria-describedby="answer-count">${esc(text)}</textarea><div class="count" id="answer-count">${[...text].length}/${box.max}자</div></div>`;
+// 자유 입력 분류 화면: 왼쪽에 글 입력·예시 문장·찾기 버튼, 오른쪽에 분류 결과(순위와 점수). 고르는 것은 answers, 보여 주기만 하는 것은 intent.ranked
+export function intentHTML(p, text = '', selected) {
+  const box = p.text_input, it = p.intent, ranked = it.ranked ?? [], scored = ranked.length || p.answers.some(a => a.score);
+  return `<div class="intent"><section class="card" aria-labelledby="intent-in-h"><div class="chead"><b id="intent-in-h">${esc(it.input_title)}</b></div>${textInputHTML(box, text)}`
+    + `<div class="examples" role="group" aria-labelledby="intent-ex-h"><span id="intent-ex-h">예시 문장 (누르면 입력됨)</span>${(box.examples ?? []).map(x => `<button type="button" class="example" data-example="${esc(x)}">${esc(x)}</button>`).join('')}</div>`
+    + `<button type="button" class="btn ${p.answers.length ? 'sec' : 'pri'}" data-event="classify"${text.trim() ? '' : ' disabled'}>${esc(box.submit)}</button></section>`
+    + `<section class="card" aria-labelledby="intent-out-h"><div class="chead"><b id="intent-out-h">${esc(it.title)}</b>${scored && it.score_label ? `<span>${esc(it.score_label)}</span>` : ''}</div>`
+    + (ranked.length ? `<ol class="ranked">${ranked.map((r, i) => `<li><span class="rank" aria-hidden="true">${i + 1}</span><span class="at">${esc(r.title)}</span><span class="score">${esc(r.score)}</span></li>`).join('')}</ol>` : '')
+    + (it.note ? `<p class="intent-note ${tone(it.note.tone)}">${esc(it.note.text)}</p>` : '')
+    + (it.empty ? `<p class="state">${esc(it.empty)}</p>` : '')
+    + (it.question ? `<p class="intent-q">${esc(it.question)}</p>` : '')
+    + (p.answers.length ? `<div class="answers" style="--cols:1">${p.answers.map((a, i) => answerCardHTML(a, a.id === selected, i + 1)).join('')}</div>` : '')
+    + '</section></div>';
+}
 export const answersHTML = (list, selected) => `<div class="answers" style="--cols:${ANSWER_COLS[list.length] ?? Math.min(list.length, 3)}">${list.map(a => answerCardHTML(a, a.id === selected)).join('')}</div>`;
 export function headlineHTML(h) {
   return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1>${h.body ? `<p>${esc(h.body)}</p>` : ''}</div>`;

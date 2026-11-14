@@ -4,6 +4,14 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
+  src: url(fonts/a17d3213ec9b.woff2) format('woff2');
+  unicode-range: U+d723-d728, U+d72a-d733, U+d735-d748, U+d74a-d74f, U+d752-d753, U+d755-d757, U+d75a-d75f, U+d762-d764, U+d766-d768, U+d76a-d76b, U+d76d-d76f, U+d771-d787, U+d789-d78b, U+d78d-d78f, U+d791-d797, U+d79a, U+d79c, U+d79e-d7a3, U+f900-f909, U+f90b-f92e;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
   src: url(fonts/57fd1468091c.woff2) format('woff2');
   unicode-range: U+cef0-cef3, U+cef6, U+cef9-ceff, U+cf01-cf03, U+cf05-cf07, U+cf09-cf0f, U+cf11-cf12, U+cf14-cf1b, U+cf1d-cf1f, U+cf21-cf2f, U+cf31-cf53, U+cf56-cf57, U+cf59-cf5b, U+cf5d-cf63, U+cf66, U+cf68, U+cf6a-cf6f, U+cf71-cf84, U+cf86-cf8b, U+cf8d-cfa1;
 }
@@ -68,6 +76,14 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
+  src: url(fonts/300fbe1a56d6.woff2) format('woff2');
+  unicode-range: U+2479-2487, U+249c-24d1, U+24d3-24d7, U+24d9-24e9, U+24eb-24f4, U+2500-2501, U+2503, U+250c-2513, U+2515-2516, U+2518-2540;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
   src: url(fonts/773661318508.woff2) format('woff2');
   unicode-range: U+215b-215e, U+2162-2169, U+2170-2179, U+2195-2199, U+21b0-21b4, U+21bc, U+21c0, U+21c4-21c5, U+21cd, U+21cf-21d4, U+21e0-21e3, U+21e6-21e9, U+2200, U+2202-2203, U+2206-2209, U+220b-220c, U+220f, U+2211, U+2213, U+221a, U+221d-2220, U+2222, U+2225-2227, U+2229-222c, U+222e, U+2234-2237, U+223d, U+2243, U+2245, U+2248, U+2250-2253, U+225a, U+2260-2262, U+2264-2267, U+226a-226b, U+226e-2273, U+2276-2277, U+2279-227b, U+2280-2287, U+228a-228b, U+2295-2297, U+22a3-22a5, U+22bb-22bc, U+22ce-22cf, U+22da-22db, U+22ee-22ef, U+2306, U+2312, U+2314, U+2467-2478;
 }
@@ -86,6 +102,14 @@
   font-display: swap;
   src: url(fonts/2408694f277e.woff2) format('woff2');
   unicode-range: U+e8, U+2da, U+2160, U+2194, U+3054, U+3058, U+306d, U+3086, U+308d, U+30ac, U+30bb, U+30c4, U+30cd-30ce, U+30e2, U+3132, U+3146, U+3149, U+339d, U+4e3b, U+4f0a, U+4fdd, U+4fe1, U+5409, U+540c, U+5834, U+592a-592b, U+5b9a, U+5dde, U+5e0c, U+5e73, U+5f0f, U+60f3, U+653f, U+661f, U+662f, U+667a, U+683c, U+6b4c, U+6c11, U+767c, U+76ee, U+76f4, U+77f3, U+79d1, U+7a7a, U+7b2c, U+7d22, U+8207, U+8a00, U+8a71, U+9280, U+9580, U+958b, U+96c6, U+9762, U+98df, U+9ed1, U+ac2d, U+adc8, U+add3, U+af48, U+b014, U+b134-b135, U+b158, U+b2aa, U+b35f, U+b6a4, U+b9cf, U+bb63, U+bd23, U+be91, U+c29b, U+c3f4, U+c42c, U+c55c, U+c573, U+c58f, U+c78c, U+c7dd, U+c8f5, U+cad1, U+cc48, U+cf10, U+cf20, U+d03c, U+d07d, U+d2a0, U+d30e, U+d38d, U+d3a8, U+d3c8, U+d5e5, U+d5f9, U+d6e4, U+f90a, U+ff02, U+ff1c;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/5d63fe8354c1.woff2) format('woff2');
+  unicode-range: U+3b1, U+2466, U+25a1, U+25a3, U+261c, U+3008-3009, U+305b, U+305d, U+3069, U+30a7, U+30ba, U+30cf, U+30ef, U+3151, U+3157, U+4e4b, U+4e5f, U+4e8c, U+4eca, U+4ed6, U+4f5b, U+50cf, U+5149, U+5165, U+5171, U+5229, U+529b, U+5316, U+539f, U+53f2, U+571f, U+5728, U+58eb, U+591c, U+5b78, U+5c11, U+5c55, U+5ddd, U+5e02, U+5fb7, U+60c5, U+610f, U+611f, U+6625, U+66f8, U+6797, U+679c, U+682a, U+6d2a, U+706b, U+7406, U+767b, U+76f8, U+77e5, U+7acb, U+898b, U+8a69, U+8def, U+8fd1, U+901a, U+90e8, U+91cd, U+975e, U+ae14, U+ae6c, U+aec0, U+afc7, U+afc9, U+b01c, U+b028, U+b308, U+b311, U+b314, U+b31c, U+b524, U+b560, U+b764, U+b920, U+b9e3, U+bd48, U+be7d, U+c0db, U+c231, U+c270, U+c2e3, U+c37d, U+c3ed, U+c530, U+c6a5, U+c6dc, U+c7a4, U+c954, U+c974, U+d000, U+d565, U+d667, U+d6c5, U+d79d, U+ff1e;
 }
 @font-face {
   font-family: 'Gothic A1';
@@ -244,6 +268,14 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
+  src: url(fonts/9eaea611aec9.woff2) format('woff2');
+  unicode-range: U+d723-d728, U+d72a-d733, U+d735-d748, U+d74a-d74f, U+d752-d753, U+d755-d757, U+d75a-d75f, U+d762-d764, U+d766-d768, U+d76a-d76b, U+d76d-d76f, U+d771-d787, U+d789-d78b, U+d78d-d78f, U+d791-d797, U+d79a, U+d79c, U+d79e-d7a3, U+f900-f909, U+f90b-f92e;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
   src: url(fonts/a28a21e71e1d.woff2) format('woff2');
   unicode-range: U+cef0-cef3, U+cef6, U+cef9-ceff, U+cf01-cf03, U+cf05-cf07, U+cf09-cf0f, U+cf11-cf12, U+cf14-cf1b, U+cf1d-cf1f, U+cf21-cf2f, U+cf31-cf53, U+cf56-cf57, U+cf59-cf5b, U+cf5d-cf63, U+cf66, U+cf68, U+cf6a-cf6f, U+cf71-cf84, U+cf86-cf8b, U+cf8d-cfa1;
 }
@@ -308,6 +340,14 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
+  src: url(fonts/d68e455450ef.woff2) format('woff2');
+  unicode-range: U+2479-2487, U+249c-24d1, U+24d3-24d7, U+24d9-24e9, U+24eb-24f4, U+2500-2501, U+2503, U+250c-2513, U+2515-2516, U+2518-2540;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
   src: url(fonts/61c9a30175ea.woff2) format('woff2');
   unicode-range: U+215b-215e, U+2162-2169, U+2170-2179, U+2195-2199, U+21b0-21b4, U+21bc, U+21c0, U+21c4-21c5, U+21cd, U+21cf-21d4, U+21e0-21e3, U+21e6-21e9, U+2200, U+2202-2203, U+2206-2209, U+220b-220c, U+220f, U+2211, U+2213, U+221a, U+221d-2220, U+2222, U+2225-2227, U+2229-222c, U+222e, U+2234-2237, U+223d, U+2243, U+2245, U+2248, U+2250-2253, U+225a, U+2260-2262, U+2264-2267, U+226a-226b, U+226e-2273, U+2276-2277, U+2279-227b, U+2280-2287, U+228a-228b, U+2295-2297, U+22a3-22a5, U+22bb-22bc, U+22ce-22cf, U+22da-22db, U+22ee-22ef, U+2306, U+2312, U+2314, U+2467-2478;
 }
@@ -326,6 +366,14 @@
   font-display: swap;
   src: url(fonts/8ac17889c188.woff2) format('woff2');
   unicode-range: U+e8, U+2da, U+2160, U+2194, U+3054, U+3058, U+306d, U+3086, U+308d, U+30ac, U+30bb, U+30c4, U+30cd-30ce, U+30e2, U+3132, U+3146, U+3149, U+339d, U+4e3b, U+4f0a, U+4fdd, U+4fe1, U+5409, U+540c, U+5834, U+592a-592b, U+5b9a, U+5dde, U+5e0c, U+5e73, U+5f0f, U+60f3, U+653f, U+661f, U+662f, U+667a, U+683c, U+6b4c, U+6c11, U+767c, U+76ee, U+76f4, U+77f3, U+79d1, U+7a7a, U+7b2c, U+7d22, U+8207, U+8a00, U+8a71, U+9280, U+9580, U+958b, U+96c6, U+9762, U+98df, U+9ed1, U+ac2d, U+adc8, U+add3, U+af48, U+b014, U+b134-b135, U+b158, U+b2aa, U+b35f, U+b6a4, U+b9cf, U+bb63, U+bd23, U+be91, U+c29b, U+c3f4, U+c42c, U+c55c, U+c573, U+c58f, U+c78c, U+c7dd, U+c8f5, U+cad1, U+cc48, U+cf10, U+cf20, U+d03c, U+d07d, U+d2a0, U+d30e, U+d38d, U+d3a8, U+d3c8, U+d5e5, U+d5f9, U+d6e4, U+f90a, U+ff02, U+ff1c;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/acd9c52b82e1.woff2) format('woff2');
+  unicode-range: U+3b1, U+2466, U+25a1, U+25a3, U+261c, U+3008-3009, U+305b, U+305d, U+3069, U+30a7, U+30ba, U+30cf, U+30ef, U+3151, U+3157, U+4e4b, U+4e5f, U+4e8c, U+4eca, U+4ed6, U+4f5b, U+50cf, U+5149, U+5165, U+5171, U+5229, U+529b, U+5316, U+539f, U+53f2, U+571f, U+5728, U+58eb, U+591c, U+5b78, U+5c11, U+5c55, U+5ddd, U+5e02, U+5fb7, U+60c5, U+610f, U+611f, U+6625, U+66f8, U+6797, U+679c, U+682a, U+6d2a, U+706b, U+7406, U+767b, U+76f8, U+77e5, U+7acb, U+898b, U+8a69, U+8def, U+8fd1, U+901a, U+90e8, U+91cd, U+975e, U+ae14, U+ae6c, U+aec0, U+afc7, U+afc9, U+b01c, U+b028, U+b308, U+b311, U+b314, U+b31c, U+b524, U+b560, U+b764, U+b920, U+b9e3, U+bd48, U+be7d, U+c0db, U+c231, U+c270, U+c2e3, U+c37d, U+c3ed, U+c530, U+c6a5, U+c6dc, U+c7a4, U+c954, U+c974, U+d000, U+d565, U+d667, U+d6c5, U+d79d, U+ff1e;
 }
 @font-face {
   font-family: 'Gothic A1';
@@ -484,6 +532,14 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
+  src: url(fonts/2278adfe6142.woff2) format('woff2');
+  unicode-range: U+d723-d728, U+d72a-d733, U+d735-d748, U+d74a-d74f, U+d752-d753, U+d755-d757, U+d75a-d75f, U+d762-d764, U+d766-d768, U+d76a-d76b, U+d76d-d76f, U+d771-d787, U+d789-d78b, U+d78d-d78f, U+d791-d797, U+d79a, U+d79c, U+d79e-d7a3, U+f900-f909, U+f90b-f92e;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
   src: url(fonts/bcfb65573275.woff2) format('woff2');
   unicode-range: U+cef0-cef3, U+cef6, U+cef9-ceff, U+cf01-cf03, U+cf05-cf07, U+cf09-cf0f, U+cf11-cf12, U+cf14-cf1b, U+cf1d-cf1f, U+cf21-cf2f, U+cf31-cf53, U+cf56-cf57, U+cf59-cf5b, U+cf5d-cf63, U+cf66, U+cf68, U+cf6a-cf6f, U+cf71-cf84, U+cf86-cf8b, U+cf8d-cfa1;
 }
@@ -548,6 +604,14 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
+  src: url(fonts/f5f43e4fc119.woff2) format('woff2');
+  unicode-range: U+2479-2487, U+249c-24d1, U+24d3-24d7, U+24d9-24e9, U+24eb-24f4, U+2500-2501, U+2503, U+250c-2513, U+2515-2516, U+2518-2540;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
   src: url(fonts/dded0a0fa0a8.woff2) format('woff2');
   unicode-range: U+215b-215e, U+2162-2169, U+2170-2179, U+2195-2199, U+21b0-21b4, U+21bc, U+21c0, U+21c4-21c5, U+21cd, U+21cf-21d4, U+21e0-21e3, U+21e6-21e9, U+2200, U+2202-2203, U+2206-2209, U+220b-220c, U+220f, U+2211, U+2213, U+221a, U+221d-2220, U+2222, U+2225-2227, U+2229-222c, U+222e, U+2234-2237, U+223d, U+2243, U+2245, U+2248, U+2250-2253, U+225a, U+2260-2262, U+2264-2267, U+226a-226b, U+226e-2273, U+2276-2277, U+2279-227b, U+2280-2287, U+228a-228b, U+2295-2297, U+22a3-22a5, U+22bb-22bc, U+22ce-22cf, U+22da-22db, U+22ee-22ef, U+2306, U+2312, U+2314, U+2467-2478;
 }
@@ -566,6 +630,14 @@
   font-display: swap;
   src: url(fonts/080be3a6f8d6.woff2) format('woff2');
   unicode-range: U+e8, U+2da, U+2160, U+2194, U+3054, U+3058, U+306d, U+3086, U+308d, U+30ac, U+30bb, U+30c4, U+30cd-30ce, U+30e2, U+3132, U+3146, U+3149, U+339d, U+4e3b, U+4f0a, U+4fdd, U+4fe1, U+5409, U+540c, U+5834, U+592a-592b, U+5b9a, U+5dde, U+5e0c, U+5e73, U+5f0f, U+60f3, U+653f, U+661f, U+662f, U+667a, U+683c, U+6b4c, U+6c11, U+767c, U+76ee, U+76f4, U+77f3, U+79d1, U+7a7a, U+7b2c, U+7d22, U+8207, U+8a00, U+8a71, U+9280, U+9580, U+958b, U+96c6, U+9762, U+98df, U+9ed1, U+ac2d, U+adc8, U+add3, U+af48, U+b014, U+b134-b135, U+b158, U+b2aa, U+b35f, U+b6a4, U+b9cf, U+bb63, U+bd23, U+be91, U+c29b, U+c3f4, U+c42c, U+c55c, U+c573, U+c58f, U+c78c, U+c7dd, U+c8f5, U+cad1, U+cc48, U+cf10, U+cf20, U+d03c, U+d07d, U+d2a0, U+d30e, U+d38d, U+d3a8, U+d3c8, U+d5e5, U+d5f9, U+d6e4, U+f90a, U+ff02, U+ff1c;
+}
+@font-face {
+  font-family: 'Gothic A1';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/a5eabeeca136.woff2) format('woff2');
+  unicode-range: U+3b1, U+2466, U+25a1, U+25a3, U+261c, U+3008-3009, U+305b, U+305d, U+3069, U+30a7, U+30ba, U+30cf, U+30ef, U+3151, U+3157, U+4e4b, U+4e5f, U+4e8c, U+4eca, U+4ed6, U+4f5b, U+50cf, U+5149, U+5165, U+5171, U+5229, U+529b, U+5316, U+539f, U+53f2, U+571f, U+5728, U+58eb, U+591c, U+5b78, U+5c11, U+5c55, U+5ddd, U+5e02, U+5fb7, U+60c5, U+610f, U+611f, U+6625, U+66f8, U+6797, U+679c, U+682a, U+6d2a, U+706b, U+7406, U+767b, U+76f8, U+77e5, U+7acb, U+898b, U+8a69, U+8def, U+8fd1, U+901a, U+90e8, U+91cd, U+975e, U+ae14, U+ae6c, U+aec0, U+afc7, U+afc9, U+b01c, U+b028, U+b308, U+b311, U+b314, U+b31c, U+b524, U+b560, U+b764, U+b920, U+b9e3, U+bd48, U+be7d, U+c0db, U+c231, U+c270, U+c2e3, U+c37d, U+c3ed, U+c530, U+c6a5, U+c6dc, U+c7a4, U+c954, U+c974, U+d000, U+d565, U+d667, U+d6c5, U+d79d, U+ff1e;
 }
 @font-face {
   font-family: 'Gothic A1';

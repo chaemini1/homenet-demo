@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, demoBroken } from './api.js?v=b54b5f34';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=b54b5f34';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=bd2a6775';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=bd2a6775';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -66,8 +66,8 @@ export const SCREENS = {
   question: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + progressHTML(p.rail.steps) + (p.why ? whyAskingHTML(p.why, p.path.conclusion?.text) : '') + headlineHTML(p.headline)
-      + (p.text_input ? textInputHTML(p.text_input, state.text) : '')
-      + answersHTML(p.answers, state.selectedAnswer)
+      + (p.intent ? intentHTML(p, state.text, state.selectedAnswer)   // 자유 입력 분류: 글은 화면 안 찾기 버튼으로, 후보 선택은 '다음'으로 보낸다
+        : (p.text_input ? textInputHTML(p.text_input, state.text) : '') + answersHTML(p.answers, state.selectedAnswer))
       + (p.link ? `<button type="button" class="ghost link" data-event="led_guide">${esc(p.link)}</button>` : '')   // 표시등 그림은 표시등 질문에만
       + '<div class="spacer"></div>'
       + actionsHTML({ ...p.actions, primary: p.actions.primary && { ...p.actions.primary, disabled: !state.selectedAnswer } }),
@@ -447,7 +447,7 @@ function revealMeasuring(p, n) {
 export async function send(event, value = null) {
   if (!state.session || state.busy) return;
   state.busy = true;
-  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text ? 'text' : null; showScreen(r.payload); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
+  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : null; showScreen(r.payload); if (event === 'scan_done') void requestExplanation(r); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
   catch (e) {
     if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
@@ -455,6 +455,29 @@ export async function send(event, value = null) {
   }
   finally { state.busy = false; }
 }
+
+// 설명 생성은 측정 결과와 버튼 사용을 기다리게 하지 않습니다.
+async function requestExplanation(session) {
+  if (demoMode || session.payload.screen !== 'result') return;
+  const visit = viewVersion;
+  const headline = document.querySelector('#stage .headline');
+  if (!headline) return;
+  const note = document.createElement('p');
+  note.className = 'foot';
+  note.setAttribute('role', 'status');
+  note.textContent = '측정 진단은 완료됐습니다. 추가 설명을 준비하고 있어요.';
+  headline.appendChild(note);
+  const current = () => state.session === session && viewVersion === visit && note.isConnected;
+  try {
+    const result = await getExplanation(session.session_id);
+    if (!current()) return;
+    note.textContent = '추가 설명: ' + result.text;
+  } catch (_) {
+    if (!current()) return;
+    note.textContent = '추가 설명을 불러오지 못했습니다. 측정 진단 결과는 그대로 사용할 수 있어요.';
+  }
+}
+
 
 // 더블클릭으로 세션이 두 개 생기지 않게. send()의 busy와는 따로 둔다: 같이 쓰면 응답 없이 멈춘 send 하나가
 // 홈의 "진단 시작"까지 막아 눌러도 아무 일 없는 버튼이 된다.
@@ -499,13 +522,15 @@ document.addEventListener('keydown', e => {
 document.addEventListener('input', e => {
   if (e.target.id !== 'answer-text') return;
   state.text = e.target.value;
+  const find = $('#stage [data-event="classify"]');   // 분류 화면: 글은 찾기 버튼만 켜고 끈다. 고른 후보는 그대로 둔다
+  if (find) { find.disabled = !state.text.trim(); $('#answer-count').textContent = `${[...state.text].length}/${e.target.maxLength}자`; return; }
   state.selectedAnswer = state.text.trim() ? 'text' : state.selectedAnswer === 'text' ? null : state.selectedAnswer;
   $('#answer-count').textContent = `${[...state.text].length}/${e.target.maxLength}자`;
   document.querySelectorAll('#stage .answer').forEach(a => { const on = a.dataset.answer === state.selectedAnswer; a.classList.toggle('selected', on); a.setAttribute('aria-pressed', on); });
   const next = $('#stage [data-event="answer"]'); if (next) next.disabled = !state.selectedAnswer;
 });
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-event],[data-answer],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
   if (el.dataset.kgView) { state.kgView = el.dataset.kgView; return void repaintKg(`#stage [data-kg-view="${el.dataset.kgView}"]`); }
   if (el.dataset.kg) {
@@ -546,6 +571,7 @@ document.addEventListener('click', e => {
     if (id === 'theme') applyTheme(el.dataset.val);
     return;
   }
+  if (el.dataset.example) { const t = $('#answer-text'); t.value = el.dataset.example; t.dispatchEvent(new Event('input', { bubbles: true })); return void t.focus(); }
   if (el.dataset.answer) { state.selectedAnswer = el.dataset.answer; showScreen(state.session.payload); return; }
   onEvent(el.dataset.event, el);
 });
@@ -599,6 +625,11 @@ export function onEvent(event, el) {
     case 'restart': return start();
     case 'finish': return finish();
     case 'answer': return send('answer', state.selectedAnswer);
+    case 'classify': return send('answer', 'text').then(() => {   // 같은 화면이라 paint가 포커스를 찾기 버튼에 두므로, 결과 칸 제목으로 옮겨 읽기 도구가 결과를 읽게 한다
+      const h = $('#intent-out-h'); if (!h) return;
+      h.tabIndex = -1; h.focus({ preventScroll: true });
+      if (matchMedia('(max-width:959px)').matches) h.closest('section').scrollIntoView({ behavior: 'smooth', block: 'start' });   // 한 칸 배치에서는 결과가 입력 아래에 있다
+    });
     case 'export_log': return exportLog();
     case 'export_report': return exportReport();
     case 'export_records': return exportRecords();
