@@ -111,6 +111,8 @@ function intentNext(s, key, event, value, destination, source, classify) {   // 
 
 function intentPaint(s, p) {                                                    // intent_flow.paint
   const key = s.key;
+  if (key.startsWith('followup_') && !TEXT_KEYS.includes(key) && (s.stack ?? []).some(k => TEXT_KEYS.includes(k)))
+    for (const step of p.rail.steps) if (step.state === 'current') step.edit = '설명 수정';   // 글을 쓴 뒤의 화면: 쓴 설명으로 한 번에 돌아가는 링크
   if (key === 'followup_intent_choice' && s._intent_screen) {
     for (const n of ['headline', 'answers', 'text_input', 'intent']) p[n] = structuredClone(s._intent_screen[n]);
     p.actions.footnote = s._intent_screen.actions.footnote;
@@ -138,7 +140,9 @@ function kgRemember(s, previous, event, value) {                               /
   if (s.key === 'scanning') { delete s._kg_answers; delete s._kg_cache; }
 }
 
-export function kgApply(s, p, K) {                                                     // kg_bridge.apply (Neo4j 조회 대신 미리 물어 둔 답)
+const answerTitle = (screens, key, id) => screens[key]?.answers?.find(a => a.id === id)?.title ?? null;
+
+export function kgApply(s, p, K, screens = null) {                                      // kg_bridge.apply (Neo4j 조회 대신 미리 물어 둔 답)
   if (s.key !== 'followup_done') return p;
   const seeds = new Set([...Array.from({ length: 15 }, (_, i) => `followup_WFQ${String(i + 1).padStart(2, '0')}`), ...[...VALID].map(v => 'followup_' + v)]);
   const q = [...(s.stack ?? []), s.key].reverse().find(k => seeds.has(k))?.slice('followup_'.length);
@@ -173,6 +177,12 @@ export function kgApply(s, p, K) {                                              
   body += device && system ? ' 상세 절차의 제조사·제품 등 적용 조건을 확인한 뒤 진행해 주세요.' : ' 기기 또는 운영체제를 확인하지 못해 상세 절차는 표시하지 않았습니다.';
   p.headline = { pill: null, title: '가능한 원인과 확인 방법', body };
   p.evidence = { title: 'KG 조회 결과', rows };
+  if (screens && Object.hasOwn(screens, 'followup_' + q)) p.kg_path = {             // kg_bridge.kg_path
+    input: [...(s.stack ?? []), s.key].some(k => TEXT_KEYS.includes(k)) ? s.text ?? null : null,
+    symptom: screens['followup_' + q].headline.title,
+    device: device ? answerTitle(screens, 'followup_WFU12', device) : null,
+    os: system ? answerTitle(screens, 'followup_WFU13', system) : null,
+  };
   return p;
 }
 
@@ -241,7 +251,7 @@ export function createServer(F, { now = clock, newId = hex8, intent = Boolean(F[
   }
   const reply = (id, s) => {
     let p = payload(s.scenario, s.key, s.step_index);
-    if (intent) p = kgApply(s, intentPaint(s, p), F['kg_answers.json']);   // main.py _session_payload와 같은 순서: paint → KG
+    if (intent) p = kgApply(s, intentPaint(s, p), F['kg_answers.json'], F['screens.json']);   // main.py _session_payload와 같은 순서: paint → KG
     return { session_id: id, scenario: s.scenario, payload: p };
   };
 

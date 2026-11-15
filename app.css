@@ -1,5 +1,5 @@
-@import url("tokens.css?v=bd2a6775");
-@import url("first-page.css?v=bd2a6775");
+@import url("tokens.css?v=4e4df242");
+@import url("first-page.css?v=4e4df242");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -98,6 +98,26 @@ button:disabled{cursor:default;opacity:.45}
 .step-item .lab{font-size:16px;font-weight:600;color:var(--text-muted)}
 .step-item.current .lab,.step-item.done .lab{color:var(--text-primary)}
 .step-item .ans{font-size:16px;color:var(--text-secondary)} .step-item.todo .ans{color:var(--text-muted)}
+.step-item .edit{height:auto;padding:var(--space-1) 0;font-size:14px}   /* 설명 수정: 답 바로 아래 글자 링크 */
+/* KG 경로: 왼쪽 줄기(x 5px)와 원인 갈래(x 27px)를 선으로, 증상·원인 후보는 점으로. 값은 한 열로 맞춘다 */
+.kp-tree{list-style:none;margin:var(--space-2) 0 var(--space-3);padding:0}
+.kp-node{--ind:24px;position:relative;display:grid;grid-template-columns:calc(170px - var(--ind)) 1fr;gap:var(--space-4);padding:7px 0 7px var(--ind);font-size:15px;line-height:1.5}
+.kp-node.lv1{--ind:46px} .kp-node.lv2{--ind:64px}
+.kp-node .k{color:var(--text-muted);font-size:14px}
+.kp-node .v{color:var(--text-secondary)}
+.kp-node:is(.lv0,.lv1):not(.input) .v{color:var(--text-primary);font-weight:700}
+.kp-node .q{margin-left:var(--space-3);font-size:13px;font-weight:400;color:var(--text-muted)}
+.kp-node::before{content:"";position:absolute;left:5px;top:0;bottom:0;border-left:1.5px solid var(--border-strong)}
+.kp-node.input::before{top:18px} .kp-node.lv0.last::before,.kp-node.lv1.last::before,.kp-node.lv2.last::before{bottom:auto;height:18px}
+.kp-node.lv2.last::before{display:none}
+.kp-node:is(.lv0,.lv1)::after{content:"";position:absolute;left:1px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--text-secondary)}
+.kp-node.input::after{background:none;border:1.5px solid var(--text-muted);width:6px;height:6px}
+.kp-node.lv1::after{left:23px}
+.kp-node.lv1 .k::before{content:"";position:absolute;left:5px;top:18px;width:22px;border-top:1.5px solid var(--border-strong)}
+.kp-node.lv2 .k::before{content:"";position:absolute;left:27px;top:0;bottom:0;border-left:1.5px solid var(--border-strong)}
+.kp-node.lv2 .k::after{content:"";position:absolute;left:27px;top:18px;width:14px;border-top:1.5px solid var(--border-strong)}
+.kp-node.lv2:is(:last-child,:has(+ .lv1)) .k::before{bottom:auto;height:18px}   /* 갈래의 마지막 항목에서 선이 끝난다 */
+@media (max-width:560px){ .kp-node{grid-template-columns:1fr;gap:2px} .kp-node .q{display:block;margin:2px 0 0} }   /* 휴대폰: 이름 위, 값 아래 (Figma Y7b 모바일) */
 
 /* ---- 무대: PathCard ---- */
 .card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-5) var(--space-6);display:flex;flex-direction:column;gap:var(--space-3);width:100%}

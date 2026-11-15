@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=bd2a6775';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine } from './render.js?v=bd2a6775';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=4e4df242';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML } from './render.js?v=4e4df242';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -48,7 +48,8 @@ export const SCREENS = {
   result: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + headlineHTML(p.headline)
-      + `<div class="detail">${metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`
+      + `<div class="detail">${p.kg_path && state.kgPathOpen ? kgPathHTML(p.kg_path, p.evidence) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`
+      + (p.kg_path ? `<button type="button" class="ghost link" data-kg-path aria-expanded="${!!state.kgPathOpen}">${state.kgPathOpen ? 'KG 경로 접기' : 'KG 경로 보기'}</button>` : '')
       + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>' + actionsHTML(p.actions),
   }),
   steps: p => ({
@@ -447,13 +448,21 @@ function revealMeasuring(p, n) {
 export async function send(event, value = null) {
   if (!state.session || state.busy) return;
   state.busy = true;
-  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : null; showScreen(r.payload); if (event === 'scan_done') void requestExplanation(r); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
+  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.kgPathOpen = false; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : null; showScreen(r.payload); if (event === 'scan_done') void requestExplanation(r); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
   catch (e) {
     if (state.view === 'intro') return;
     if (e.status === 404) return sessionLost();
     showError('#stage', new Error(`진행하지 못했습니다: ${e.message}`), () => state.session ? showScreen(state.session.payload) : showHome());
   }
   finally { state.busy = false; }
+}
+
+// 설명 수정: 글 입력 화면이 나올 때까지 '이전'을 보낸다 (서버가 지나온 화면을 한 칸씩 되돌리고, 쓴 글은 입력칸에 남는다)
+async function editText() {
+  for (let i = 0; i < 8 && state.session && !state.session.payload.text_input; i++) {
+    const before = state.session; await send('back');
+    if (state.session === before) return;   // 실패하거나 다른 요청 중이면 멈춘다
+  }
 }
 
 // 설명 생성은 측정 결과와 버튼 사용을 기다리게 하지 않습니다.
@@ -530,8 +539,9 @@ document.addEventListener('input', e => {
   const next = $('#stage [data-event="answer"]'); if (next) next.disabled = !state.selectedAnswer;
 });
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle],[data-kg-path]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
+  if (el.dataset.kgPath !== undefined) { state.kgPathOpen = !state.kgPathOpen; return void showScreen(state.session.payload); }   // 같은 화면 다시 그리기: paint가 포커스를 이 버튼으로 돌려놓는다
   if (el.dataset.kgView) { state.kgView = el.dataset.kgView; return void repaintKg(`#stage [data-kg-view="${el.dataset.kgView}"]`); }
   if (el.dataset.kg) {
     if (kgDragged === el && e.detail) { kgDragged = null; return; }
@@ -638,6 +648,7 @@ export function onEvent(event, el) {
     case 'intro_start': return startFromIntro();
     case 'led_guide': return openSheet('인터넷 표시등 위치', ledGuideHTML());
     case 'kg_general': return openKgSheet(el.textContent);
+    case 'edit_text': return editText();
     case 'demo_help': { const t = document.getElementById('demo-help'); return t && openSheet(t.dataset.title, t.innerHTML); }   // 데모 빌드만(build-static.py가 <template>을 넣는다)
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':

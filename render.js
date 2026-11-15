@@ -51,7 +51,26 @@ export function metricListHTML(l) {
   return `<div class="mlist"><div class="mhead"><b>${esc(l.title)}</b>${meta}</div>${l.rows.map(m => metricRowHTML(m) + sourcesHTML(m.sources)).join('')}${note}</div>`;
 }
 export function stepperHTML(steps) {
-  return `<div class="stepper">${steps.map(s => `<div class="step-item ${esc(s.state)}"><div class="marker">${s.state === 'done' ? '✓' : ''}</div><div><div class="lab">${esc(s.label)}</div>${s.answer ? `<div class="ans">${esc(s.answer)}</div>` : ''}</div></div>`).join('')}</div>`;
+  return `<div class="stepper">${steps.map(s => `<div class="step-item ${esc(s.state)}"><div class="marker">${s.state === 'done' ? '✓' : ''}</div><div><div class="lab">${esc(s.label)}</div>${s.answer ? `<div class="ans">${esc(s.answer)}</div>` : ''}${s.edit ? `<button type="button" class="ghost link edit" data-event="edit_text">${esc(s.edit)}</button>` : ''}</div></div>`).join('')}</div>`;
+}
+// KG 경로: evidence.rows(원인 후보 → 조건·조치·상세 절차 순서)를 원인 후보마다 가지로 묶는다. 참고 자료 등 나머지 행은 나무 아래에 목록 모양 그대로
+export function kgPathHTML(path, evidence) {
+  const node = (cls, k, v, extra = '') => `<li class="kp-node ${cls}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}${extra}</span></li>`;
+  const query = [path.device && `기기 ${path.device}`, path.os && `운영체제 ${path.os}`].filter(Boolean).join(' · ');
+  const causes = [], rest = [];
+  for (const m of evidence.rows) {
+    if (m.label === '원인 후보') causes.push([m]);
+    else if (causes.length && (m.label === '확인할 조건' || m.label === '확인·조치' || m.label.startsWith('상세 절차 · '))) causes.at(-1).push(m);
+    else rest.push(m);
+  }
+  const step = m => m.label.startsWith('상세 절차 · ') ? ['상세 절차', `${m.label.slice(8)}: ${m.value}`] : [m.label, m.value];
+  const tree = causes.map(([c, ...kids], i) => {   // last: 마지막 원인 후보 → 줄기가 그 점에서 끝난다 (CSS)
+    const last = i === causes.length - 1 ? ' last' : '';
+    return node('lv1' + last, c.label, c.value) + kids.map(m => node('lv2' + last, ...step(m))).join('');
+  }).join('');
+  const head = (path.input ? node('lv0 input', '입력한 설명', `“${path.input}”`) : '') + node('lv0' + (causes.length ? '' : ' last'), '증상', path.symptom, query ? `<span class="q">${esc(query)}</span>` : '');
+  const note = rest.some(m => m.sources?.length) ? '<p class="msrc-note">출처는 참고용이며 실제 측정 결과와 별개입니다.</p>' : '';
+  return `<div class="mlist kgpath"><div class="mhead"><b>KG 경로</b>${path.input ? '<span>증상까지는 분류기, 그 뒤는 KG입니다.</span>' : ''}</div><ol class="kp-tree">${head}${tree}</ol>${rest.map(m => metricRowHTML(m) + sourcesHTML(m.sources)).join('')}${note}</div>`;
 }
 export function stepConfirmHTML(s, index) {
   const active = s.state === 'todo';
