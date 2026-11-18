@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=4e4df242';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML } from './render.js?v=4e4df242';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=55856d0c';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgColumnsHTML, termsHTML } from './render.js?v=55856d0c';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
+const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
 const SETTINGS_KEY = 'homenet.settings', INTRO_KEY = 'homenet.introSeen';
 const demoMode = document.documentElement.dataset.mode === 'demo';
 const autoScanEnabled = () => {
@@ -42,13 +42,13 @@ export const SCREENS = {
   scanning: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + headlineHTML(p.headline)
-      + `<div class="detail">${metricListHTML(p.measuring)}${metricListHTML(p.capabilities)}</div>`
+      + `<div class="detail">${metricListHTML(p.measuring)}</div>`   // "자동 점검에서 보는 것" 설명 목록은 뺐다 (11/17 사용자: 필요 없는 설명)
       + `<p class="foot">${esc(p.footnote)}</p><div class="spacer"></div>` + actionsHTML(p.actions),
   }),
   result: p => ({
     rail: railStepsHTML(p.rail.steps),
-    stage: pathCardHTML(p.path) + headlineHTML(p.headline)
-      + `<div class="detail">${p.kg_path && state.kgPathOpen ? kgPathHTML(p.kg_path, p.evidence) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`
+    stage: pathCardHTML(p.path) + termsHTML(headlineHTML(p.headline)   // 용어 설명은 결과의 글과 목록에만 (경로 칸 이름에는 붙이지 않는다)
+      + `<div class="detail">${p.kg_path && state.kgPathOpen ? kgPathHTML(p.kg_path, p.evidence) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`)
       + (p.kg_path ? `<button type="button" class="ghost link" data-kg-path aria-expanded="${!!state.kgPathOpen}">${state.kgPathOpen ? 'KG 경로 접기' : 'KG 경로 보기'}</button>` : '')
       + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>' + actionsHTML(p.actions),
   }),
@@ -83,7 +83,7 @@ export const SCREENS = {
   }),
 };
 
-function setStatusPill(p) { $('#status-pill').innerHTML = `${dotHTML(p.tone)}<span id="status-pill-text">${esc(p.text)}</span>`; }
+function setStatusPill(p) { $('#status-pill').innerHTML = `<span id="status-pill-text">${esc(p.text)}</span>`; }
 
 // 화면에 그리기 직전에 끼우는 값 두 가지: 마지막 점검 뒤 흐른 시간({ago})과 설정에서 고른 통신사.
 // 통신사: 응답의 by_isp[고른 통신사]가 같은 이름의 최상위 필드를 통째로 바꾼다. 안 골랐으면(null) 본문 = 미선택 문구 그대로.
@@ -107,7 +107,9 @@ function localize(obj) {
 // 홈 상태가 아직 없으면(#settings·#records로 바로 열거나 거기서 새로고침) 한 번 받아 와서 그린다. 실패하면 빈칸 그대로
 function paintTopIsp() {
   if (state.view === 'intro') return;
-  if (!state.status) return void getStatus(false).then(s => { state.status ??= s; paintTopIsp(); }, () => {});
+  // 실제 서버는 받아 온 상태로 상단 표시도 바꾼다(index.html 기본 문구 "예시 데이터로 보는 중"이 남지 않게). 데모는 기본 문구 그대로.
+  // 응답이 늦어 이미 다른 화면(진단 등)으로 넘어갔으면 그 화면의 표시를 덮지 않는다
+  if (!state.status) return void getStatus(false).then(s => { state.status ??= s; if (!demoMode && ['records', 'settings'].includes(state.view)) setStatusPill(state.status.status_pill); paintTopIsp(); }, () => {});
   const s = localize(state.status);
   $('#isp').textContent = s.isp_label;
   $('#isp-call').innerHTML = actionHTML(s.isp_call, 'ghost');
@@ -117,12 +119,14 @@ function paintTopIsp() {
 let paintedKey = null;
 function paint({ rail, stage }, key) {
   if (state.view === 'intro') return;
+  hideTip();   // 다시 그리면 열린 용어 설명의 단추가 사라진다
   // 다시 그리면 포커스가 body로 떨어진다: 같은 화면이면 같은 data-* 컨트롤로 돌려놓는다
   const had = document.activeElement?.closest('#rail, #stage') && document.activeElement;
   const back = had && [...had.attributes].filter(a => a.name.startsWith('data-')).map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+  if (key !== 'settings') rail = foldableRailHTML(rail, state.railCollapsed);   // 홈·진단·기록의 왼쪽 칸도 접는다. 설정의 왼쪽 칸은 메뉴라서 뺀다
   $('#rail').innerHTML = rail; $('#stage').innerHTML = stage;
   $('.app').dataset.screen = key;   // 휴대폰 CSS가 화면별 배치(탭 막대·순서·숨김)를 고르는 이름표
-  $('#rail').classList.toggle('collapsed', key === 'expert' && state.railCollapsed);      // 접힌 추론 로그는 전문가 콘솔에서만
+  $('#rail').classList.toggle('collapsed', state.railCollapsed && rail.includes('data-rail-toggle'));      // 접기 버튼이 있는 칸만 접는다
   const el = $('#stage');
   el.classList.remove('enter');
   if (key === paintedKey) { if (back) document.querySelector(`#rail ${back}, #stage ${back}`)?.focus(); return; }
@@ -188,24 +192,41 @@ function render(view, again = false) {
   if (view === 'records') return showRecords();
   if (view === 'settings') return showSettings();
   if (view === 'expert') return showExpert();
-  if (state.session && !again) { setActiveNav('home'); return showScreen(state.session.payload); }
+  if (state.session && !again) { setActiveNav('home'); showScreen(state.session.payload); return void (state.session.explain && requestExplanation(state.session)); }
   return showHome();
 }
 window.addEventListener('hashchange', () => render(viewFromHash()));
-// 기록·설정의 상단 pill은 홈 상태를 그대로 쓴다. 아직 홈 상태를 못 받았으면
-// index.html의 기본 pill을 그대로 둔다 (문구를 여기 또 적지 않는다). 통신사 라벨·버튼은 paintTopIsp가 없으면 받아 온다.
+// 기록·설정의 상단 pill은 홈 상태를 그대로 쓴다. 아직 홈 상태를 못 받았으면 데모는
+// index.html의 기본 pill을 그대로 두고, 실제 서버는 paintTopIsp가 받아 온 상태로 바꾼다. 통신사 라벨·버튼도 paintTopIsp가 받아 온다.
 const syncTopPill = () => { if (state.status) setStatusPill(state.status.status_pill); paintTopIsp(); };
 
 // 정보 수집·이용 동의: 측정(점검·진단) 전에 한 번. 문구가 바뀌면 버전을 올려 다시 묻는다
-const CONSENT_KEY = 'homenet.consent', CONSENT_VERSION = '1';
+// CONSENT_SERVER: 팀 DB 서버로 보내기 시작할 때 true로 바꾼다(체크 목록 동의, 버전 2라 기존 동의자도 다시 묻는다). ?consent=server는 미리 보기
+const CONSENT_SERVER = false;
+const consentServer = CONSENT_SERVER || new URLSearchParams(location.search).get('consent') === 'server';
+const CONSENT_KEY = 'homenet.consent', CONSENT_VERSION = consentServer ? '2' : '1', CONSENT_OPTIONAL_KEY = 'homenet.consent.optional';
+// 체크 목록 동의: 전체 동의를 누르면 모두 따라가고, 항목을 바꾸면 전체 동의 표시가 맞춰지며, 필수를 모두 골라야 '동의하고 시작'이 켜진다
+function syncAgree(form, changed) {
+  const boxes = [...form.querySelectorAll('input[name=agree]')], all = form.querySelector('[data-all]');
+  if (changed === all) boxes.forEach(b => { b.checked = all.checked; });
+  all.checked = boxes.every(b => b.checked);
+  form.querySelector('button[value=yes]').disabled = !boxes.every(b => b.checked || !('need' in b.dataset));
+}
 let consentGiven = false, consentDeclined = false;   // 저장이 막혀도 이번 방문에서는 다시 묻지 않는다. 거절 뒤에는 사용자가 버튼을 누를 때만 다시 묻는다(반복 팝업 금지)
 const hasConsent = () => { if (consentGiven) return true; try { return localStorage.getItem(CONSENT_KEY) === CONSENT_VERSION; } catch { return false; } };
 async function askConsent() {
   const d = $('#sheet'); if (d.open) return false;
-  d.innerHTML = consentHTML(); d.classList.remove('wide'); d.returnValue = '';
+  d.innerHTML = consentServer ? consentServerHTML() : consentHTML(); d.classList.remove('wide'); d.returnValue = '';
+  const form = d.querySelector('form');
+  if (consentServer) {
+    form.addEventListener('change', e => syncAgree(form, e.target));
+    form.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.type === 'checkbox') e.preventDefault(); });   // 체크박스에서 Enter = 첫 버튼('동의 안 함') 제출이 되는 것을 막는다
+  }
+  // 선택 동의는 닫힌 뒤 잡아 둔 form에서 읽는다(시트 innerHTML이 바뀌어도 그대로). 백엔드가 이 값을 받는 방법은 서버 확정 뒤에 정한다
   const ok = await new Promise(resolve => { d.addEventListener('close', () => resolve(d.returnValue === 'yes'), { once: true }); d.showModal(); });
+  const optional = [...form.querySelectorAll('input[name=agree]:checked')].filter(b => !('need' in b.dataset)).map(b => b.value);
   consentGiven = ok; consentDeclined = !ok;
-  if (ok) { try { localStorage.setItem(CONSENT_KEY, CONSENT_VERSION); } catch { /* 저장 불가여도 이번 방문은 동의로 본다 */ } }
+  if (ok) { try { localStorage.setItem(CONSENT_KEY, CONSENT_VERSION); if (consentServer) localStorage.setItem(CONSENT_OPTIONAL_KEY, JSON.stringify(optional)); } catch { /* 저장 불가여도 이번 방문은 동의로 본다 */ } }
   return ok;
 }
 
@@ -213,7 +234,7 @@ export async function showHome(check = autoScanEnabled()) {
   if (shouldShowIntro()) return showIntro();
   setActiveNav('home');
   const visit = viewVersion;
-  clearTimeout(state.timer); state.session = null; state.selectedAnswer = null; state.text = '';
+  clearTimeout(state.timer); state.session = null; state.selectedAnswer = null; state.picked = {}; state.ranked = null; state.text = '';
   const ask = check && !hasConsent(); if (ask) check = false;   // 동의 전에는 측정 없는 홈을 먼저 그리고 그 위에서 묻는다
   // 자동 점검 OFF로 화면만 오간 경우, 사용자가 직접 확인한 결과와 시각은 그대로 둔다.
   if (!check && state.status && state.checkedAt !== null) { paintHome(); return; }
@@ -320,20 +341,21 @@ export async function showSettings() {
 // 전문가 콘솔(WE1): 설정 "전문가 모드 켜기"나 상단 칩으로 들어오고, 상단 토글이나 "일반 화면으로 보기"로 나간다.
 // 진단 중에 들어오면 그 세션의 추론을 보여주고, 나갈 때 진단 화면으로 되돌아간다 (세션은 건드리지 않는다).
 // KG 카드는 경로(path)가 있을 때만 (빈 상태엔 없음). /kg 실패는 카드 자리에만 알리고 콘솔 나머지는 그대로 그린다
-const kgCard = () => state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
-const kgKnown = () => state.kg && !state.kgErr && state.expert.path ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
+const kgResult = () => state.session?.payload?.kg_path ? state.session.payload : null;   // 세부 질문 결과: 실제 KG가 답한 경로. 글 없이 온 경로(input 없음)는 분류 후보를 붙이지 않는다
+const kgCard = () => kgResult() ? kgColumnsHTML(kgResult().kg_path, kgResult().evidence, kgResult().kg_path.input ? state.ranked ?? [] : []) : state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
+const kgKnown = () => state.kg && !state.kgErr && state.expert.path && !kgResult() ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
 const paintExpert = () => {
   $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar);
-  paint({ rail: expertRailHTML(state.expert.log, kgKnown(), state.railCollapsed), stage: expertStageHTML(state.expert, state.expert.path ? kgCard() : '') }, 'expert');
+  paint({ rail: expertRailHTML(state.expert.log, kgKnown(), state.railCollapsed), stage: expertStageHTML(state.expert, state.expert.path || kgResult() ? kgCard() : '') }, 'expert');
   state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? null; markKgLog(); applyKgLabels();
 };
 // 노드 선택은 제자리 갱신만: 노드 클래스·aria·tabindex, 패널, 해당 로그 줄 강조. 무대 전체를 다시 그리지 않는다 (스크롤·포커스 유지)
 const markKgLog = () => document.querySelectorAll('#rail .logrow').forEach(r => r.classList.toggle('hit', !!state.kgSel && !!r.querySelector(`[data-kg="${state.kgSel}"]`)));
-// 추론 로그 접기/펴기: 로그를 다시 그리지 않고 클래스·버튼 글자만 바꾼다(스크롤·포커스 유지). 접은 상태는 기억한다(이 브라우저에만)
+// 왼쪽 칸(추론 로그, 진단 단계 등) 접기/펴기: 칸을 다시 그리지 않고 클래스·버튼 글자만 바꾼다(스크롤·포커스 유지). 접은 상태는 기억한다(이 브라우저에만)
 function toggleRail() {
   state.railCollapsed = !state.railCollapsed;
   try { localStorage.setItem('homenet.railCollapsed', state.railCollapsed ? '1' : '0'); } catch { /* 저장 불가면 이번 화면에서만 */ }
-  const b = $('#rail [data-rail-toggle]'), name = $('#rail .lhead b')?.textContent ?? '';
+  const b = $('#rail [data-rail-toggle]'), name = $('#rail .rail-vlabel')?.textContent ?? '';
   $('#rail').classList.toggle('collapsed', state.railCollapsed);
   b.setAttribute('aria-expanded', String(!state.railCollapsed)); b.setAttribute('aria-label', `${name} ${state.railCollapsed ? '펼치기' : '접기'}`); b.textContent = state.railCollapsed ? '›' : '‹';
 }
@@ -410,7 +432,7 @@ export async function showExpert() {
     showError('#stage', new Error(`전문가 콘솔을 불러오지 못했습니다: ${e.message}`), showExpert); return;
   }
   state.kgErr = null;
-  if (state.expert.path) await loadKg().catch(e => { state.kgErr = e.message; });
+  if (state.expert.path && !kgResult()) await loadKg().catch(e => { state.kgErr = e.message; });
   if (visit !== viewVersion) return;
   paintExpert();
 }
@@ -437,20 +459,73 @@ export function showScreen(raw) {
   if (payload.screen === 'wait') state.timer = setTimeout(function tick() { if ($('#sheet').open) state.timer = setTimeout(tick, 5000); else send('recheck'); }, 60000);
 }
 
+// 용어 설명: 마우스를 올리면 뜨고 내리면 닫힌다. 누르면(휴대폰) 고정되고, 다시 누르기·바깥 누르기·Esc·스크롤로 닫힌다.
+// 설명 글은 단추 뒤의 숨은 span(aria-describedby)이라 읽기 도구는 단추에서 바로 읽는다. 보일 때만 화면 안에 들어오게 자리를 잡는다
+let tip = null;   // { btn, pinned }
+// 단추가 용어 설명 단추일 때만 돌려준다 (app.test의 가짜 closest는 선택자와 상관없이 아무 요소나 돌려준다)
+const termOf = t => { const b = t?.closest?.('.term'); return b?.classList?.contains('term') ? b : null; };
+// 단추나 그 설명 상자 안인지: 마우스를 단추에서 상자로 옮겨도 닫지 않는다 (WCAG 1.4.13)
+const inTip = n => !!n && (tip.btn.contains(n) || document.getElementById(tip.btn.getAttribute('aria-describedby'))?.contains(n));
+function showTip(btn, pinned) {
+  hideTip();
+  const d = document.getElementById(btn.getAttribute('aria-describedby')); if (!d) return;
+  d.hidden = false; tip = { btn, pinned }; btn.classList.add('on');
+  const r = btn.getBoundingClientRect(), w = d.offsetWidth, h = d.offsetHeight;
+  d.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+  d.style.top = `${r.bottom + 6 + h <= innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - h - 6)}px`;   // 아래가 모자라면 위로
+}
+function hideTip() {
+  if (!tip) return;
+  const d = document.getElementById(tip.btn.getAttribute('aria-describedby')); if (d) d.hidden = true;
+  tip.btn.classList.remove('on'); tip = null;
+}
+document.addEventListener('pointerover', e => { const b = termOf(e.target); if (b && e.pointerType === 'mouse' && !tip?.pinned) showTip(b, false); });
+document.addEventListener('pointerout', e => { if (tip && !tip.pinned && inTip(e.target) && !inTip(e.relatedTarget)) hideTip(); });
+document.addEventListener('focusin', e => { const b = termOf(e.target); if (b && tip?.btn !== b) showTip(b, false); });
+document.addEventListener('focusout', e => { if (tip && e.target === tip.btn && (!tip.pinned || e.relatedTarget)) hideTip(); });   // Tab으로 옮기면 고정한 것도 닫는다
+document.addEventListener('click', e => {
+  const b = termOf(e.target);
+  if (!b) return void (tip?.pinned && hideTip());
+  if (tip?.btn === b && tip.pinned) hideTip(); else showTip(b, true);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && tip) { hideTip(); e.stopPropagation(); } }, true);
+window.addEventListener('scroll', hideTip, { passive: true }); window.addEventListener('resize', hideTip);
+
 // W1: 재는 항목을 0.6초에 한 줄씩 드러내고(5줄 = 3초), 다 드러나면 자동으로 다음 화면.
 function revealMeasuring(p, n) {
   const rows = p.measuring.rows.map((r, i) => i < n ? r : { ...r, value: '대기', status: 'unknown' });
   const d = $('#stage .detail');
-  if (d) d.innerHTML = metricListHTML({ ...p.measuring, rows }) + metricListHTML(p.capabilities);
+  if (d) d.innerHTML = metricListHTML({ ...p.measuring, rows });
   state.timer = setTimeout(() => n < rows.length ? revealMeasuring(p, n + 1) : send('scan_done'), 600);
 }
+
+// 이전 선택 기억: 같은 질문(제목)에 다시 오면 그때 고른 답을 미리 고른다. 글에 따라 바뀌는 증상 후보 화면은 빼고, 진단 한 번 동안만(홈에서 비움)
+function pickedFor(p) {
+  const id = !p.intent && state.picked[p.headline?.title];
+  return id && p.answers?.some(a => a.id === id) ? id : null;
+}
+
+// 증상 확인 화면: 고른 증상 이름 하나와 '다음' 버튼뿐이라 화면이 비어 보인다 (11/17 사용자). 설명·근거가 붙어 오면 내용이 있으므로 그대로 보여 준다
+const isPassScreen = p => p.screen === 'result' && p.actions?.primary?.event === 'next' && !p.headline?.body && !p.evidence && !p.candidates && !p.kg_path;
 
 export async function send(event, value = null) {
   if (!state.session || state.busy) return;
   state.busy = true;
-  try { const r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); state.session = r; state.kgPathOpen = false; state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : null; showScreen(r.payload); if (event === 'scan_done') void requestExplanation(r); }   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
+  const asked = state.session.payload.headline?.title, sid = state.session.session_id;
+  // 기다리는 동안(실제 서버는 KG 조회로 최대 20초) 진단을 버렸는지: 홈으로 가서 세션이 비었거나 새 진단을 시작 중이면 버린 것.
+  // 기록·설정에 갔다가 진단 탭으로 돌아오는 것은 버린 게 아니다(화면 번호 viewVersion으로 판단하면 이 경우 응답을 잃는다)
+  const dropped = () => state.session?.session_id !== sid || state.starting;
+  try { let r = await advance(state.session.session_id, event, value, value === 'text' ? state.text.trim() : undefined); if (event === 'answer' && value !== 'text' && asked) state.picked[asked] = value;
+    // 그리지 않고 가던 방향으로 한 칸 더 간다. 서버 흐름과 지나온 길 기록은 그대로다 (KG 조회가 그 기록을 본다). 둘째 요청이 실패하면 이 화면이 그려져 버튼으로 넘어갈 수 있다
+    if (isPassScreen(r.payload)) { if (dropped()) return; state.session = r; r = await advance(r.session_id, event === 'back' ? 'back' : 'next'); }
+    if (dropped()) return;
+    state.session = r; state.kgPathOpen = false; if (r.payload.intent) state.ranked = r.payload.intent.ranked ?? r.payload.answers.filter(a => a.score);   // 분류 후보는 전문가 KG의 첫 열. 모호하면 보여 주기만 하는 intent.ranked로 온다
+    state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : pickedFor(r.payload);   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
+    if (event === 'scan_done') r.explain = true;   // 진단 결과 화면에는 SLM 추가 설명을 붙인다(다른 탭에 있었으면 돌아올 때 render가 붙인다)
+    if (state.view !== 'home') return;   // 기록·설정·전문가·첫 페이지를 보는 중이면 덮지 않는다(진단 탭으로 돌아오면 render가 이 진단을 그린다)
+    showScreen(r.payload); if (r.explain) void requestExplanation(r); }
   catch (e) {
-    if (state.view === 'intro') return;
+    if (state.view !== 'home' || dropped()) return;
     if (e.status === 404) return sessionLost();
     showError('#stage', new Error(`진행하지 못했습니다: ${e.message}`), () => state.session ? showScreen(state.session.payload) : showHome());
   }
@@ -478,10 +553,11 @@ async function requestExplanation(session) {
   headline.appendChild(note);
   const current = () => state.session === session && viewVersion === visit && note.isConnected;
   try {
-    const result = await getExplanation(session.session_id);
+    const result = await (session.explaining ??= getExplanation(session.session_id));   // 탭을 오가도 한 번만 요청한다
     if (!current()) return;
     note.textContent = '추가 설명: ' + result.text;
   } catch (_) {
+    session.explaining = null;   // 실패하면 다음에 돌아올 때 다시 요청
     if (!current()) return;
     note.textContent = '추가 설명을 불러오지 못했습니다. 측정 진단 결과는 그대로 사용할 수 있어요.';
   }
@@ -490,15 +566,16 @@ async function requestExplanation(session) {
 
 // 더블클릭으로 세션이 두 개 생기지 않게. send()의 busy와는 따로 둔다: 같이 쓰면 응답 없이 멈춘 send 하나가
 // 홈의 "진단 시작"까지 막아 눌러도 아무 일 없는 버튼이 된다.
-// ponytail: 멈췄던 send 응답이 늦게 와서 새 진단을 덮는 경우는 못 막음 → B-4(await 뒤 nav 토큰 확인)에서
 async function start() {
   if (state.starting) return;
   state.starting = true;
   viewVersion++;   // 시작 전의 홈 조회가 늦게 와도 진단 화면을 덮지 않는다.
   clearTimeout(state.timer);
-  $('#stage').innerHTML = '<p class="state">진단 예시를 시작하는 중…</p>';
-  try { state.session = await startDiagnosis(scenario); showScreen(state.session.payload); }
-  catch (e) { if (state.view !== 'intro') showError('#stage', new Error(`진단을 시작하지 못했습니다: ${e.message}`), showHome); }
+  $('#stage').innerHTML = '<p class="state">진단을 시작하는 중…</p>';
+  // 기다리는 동안 기록·설정 등으로 갔으면 세션만 받아 두고 그리지 않는다(진단 탭으로 돌아오면 render가 그린다).
+  // 그리기 전에 화면 번호를 올려, 그사이 열린 홈 조회가 늦게 와서 이 진단을 덮지 않게 한다
+  try { const s = await startDiagnosis(scenario); state.session = s; state.picked = {}; state.ranked = null; if (state.view === 'home') { viewVersion++; showScreen(s.payload); } }
+  catch (e) { if (state.view === 'home') showError('#stage', new Error(`진단을 시작하지 못했습니다: ${e.message}`), showHome); }
   finally { state.starting = false; }
 }
 
@@ -653,14 +730,14 @@ export function onEvent(event, el) {
     case 'licenses': return openSheet('오픈소스 라이선스', licensesHTML(state.settings.sections.flatMap(s => s.rows).find(r => r.id === 'license').details));
     case 'clear_records':
       if (!confirm('진단 기록 전체 삭제 (되돌릴 수 없음)')) return;
-      return clearRecords().then(() => { consentGiven = false; try { localStorage.removeItem(CONSENT_KEY); } catch { /* 저장 불가면 이번 방문 동의만 푼다 */ }   // 기록 지우기 = 동의 철회
+      return clearRecords().then(() => { consentGiven = false; try { localStorage.removeItem(CONSENT_KEY); localStorage.removeItem(CONSENT_OPTIONAL_KEY); } catch { /* 저장 불가면 이번 방문 동의만 푼다 */ }   // 기록 지우기 = 동의 철회
         if (state.status) state.status.recent = []; el.textContent = '삭제 완료'; el.disabled = true; }, e => showError('#stage', new Error(`기록을 지우지 못했습니다: ${e.message}`), showSettings));
     case 'records': return finish('records');          // 완료 화면 "진단 기록 보기": 끝내야 기록에 남으므로 닫고 간다
     // 전화는 render.js가 tel: 링크로 그려 브라우저가 처리한다. 번호를 모르면(미선택·기타) 버튼이 이것으로 바뀐다
     case 'pick_isp': state.pickIsp = true; return route('settings');
     // W3: "됐어요/안 됐어요" 뒤에 기기가 다시 재는 순간을 보여주고 나서 넘어간다
     case 'step_done': case 'step_failed':
-      el.disabled = true; setStatusPill({ tone: 'checking', text: '점검 예시를 확인하는 중…' });
+      el.disabled = true; setStatusPill({ tone: 'checking', text: '다시 확인하는 중…' });
       state.timer = setTimeout(() => send(event), 900); return;
     case 'normal_view': return leaveExpert();        // 전문가 콘솔 → 하던 진단 화면 (설정은 켜진 채)
     case 'skip': clearTimeout(state.timer); return send('skip');

@@ -1,30 +1,37 @@
 /* 다크 = Figma "01 Foundations" 기반. 10/2 사용자 결정으로 일부 조정(Figma 미반영): 글자색을 조금 낮추고, 카드 바탕을 한 단계 밝게(카드 테두리를 없애도 구분되게), 고정폭 글꼴은 코드 id에만.
-   라이트 모드(아래 [data-theme=light])는 Figma에 없는 값 — 10/1 추가 */
+   라이트 모드(아래 [data-theme=light])는 Figma에 없는 값 — 10/1 추가
+   11/17: 형광 연두 포인트(#cdea50)와 푸른 기 도는 검정을 빼고, 중립 회색 바탕 + 흰 버튼으로 바꿨다(팀 의견 "AI가 만든 티", 사용자가 비교안 W를 고름).
+   색이 칠해진 곳은 상태(초록·주황·빨강)뿐이다
+   11/17 (2): 상태 색의 채도를 낮추고 밝기를 올렸다. 어두운 바탕에서 채도 높은 색은 번져 보이고 형광처럼 튄다(사용자: "다크가 AI 티가 가장 심함", Material 다크 테마 지침의 "desaturated"와 같은 방향).
+   채도 49·86·85% → 35·66·69%. 글자 대비는 카드·페이지·입력칸·옅은 바탕 위 모두 5.4:1 이상
+   11/18: 글자를 덜 하얗게(사용자: "하얀 느낌만 줘서 읽기 불편"). 주 글자 #ececea → #dcdbd5(카드 위 14.1 → 12.0:1), 보조 #c8c8c4 → #b3b2ab(9.9 → 7.8:1).
+   흐린 글자 #909089는 그대로 둔다(카드 위 5.2:1, 입력칸 위는 이미 4.48:1로 기준 미달. 11/18 이전부터 있던 값). 파란 포인트 시안은 사용자가 "안 어울림"으로 뺐다. 히어로(hero/)도 같은 값 */
 :root{
   color-scheme:dark;
-  --bg-base:#141416; --bg-surface:#1f1f23; --bg-input:#28282d;
-  --border-subtle:#2b2b30; --border-strong:#34343a;
-  --text-primary:#e8e8ec; --text-secondary:#cfcfd5; --text-muted:#8b8b93; --text-on-accent:#141416;
-  --accent:#cdea50; --accent-bg:rgba(205,234,80,.14);
-  --success:#4cc27e; --success-bg:rgba(76,194,126,.14);
-  --warning:#f0a13d; --warning-bg:rgba(240,161,61,.14);
-  --critical:#f37168; --critical-bg:rgba(243,113,104,.14);   /* 옅은 바탕 위 글자 4.5:1 이상 (11/4, 카드 위 4.70) */
+  --bg-base:#161615; --bg-surface:#1e1e1d; --bg-input:#2a2a28;
+  --border-subtle:#2e2e2c; --border-strong:#3d3d3a;
+  --text-primary:#dcdbd5; --text-secondary:#b3b2ab; --text-muted:#909089; --text-on-accent:#141413;
+  --accent:#e6e6e2; --accent-bg:rgba(230,230,226,.10);
+  --success:#86c5a0; --success-bg:rgba(134,197,160,.14);
+  --warning:#e0a865; --warning-bg:rgba(224,168,101,.14);
+  --critical:#e98f87; --critical-bg:rgba(233,143,135,.14);
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-7:28px;
   --radius-sm:6px; --radius-md:8px; --radius-lg:10px; --radius-xl:12px; --radius-full:999px;
   --font-ui:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
   --font-code:'JetBrains Mono',ui-monospace,Consolas,monospace;   /* 코드 id(cause_isp_outage 등)에만 */
   --font-mono:var(--font-ui);   /* 예전 고정폭 자리(값·시간·안내문): 이제 UI 글꼴 + 숫자 같은 폭(app.css body tabular-nums). 고정폭 글자 간격이 딱딱해 보여서(10/2) */
 }
-/* 라이트: 같은 토큰 이름에 값만 바꾼다. 흰색 + 부드러운 블루(10/2, 참고: Stripe 로그인 화면의 색감).
-   글자는 검정이 아니라 회청색(slate), 블루는 보라 기가 조금 섞인 색, 선은 아주 옅게 — 카드는 선 대신 그림자로 띄운다(app.css 맨 아래).
-   글자 대비는 흰 바탕에서 4.5:1 이상 */
+/* 라이트: 같은 토큰 이름에 값만 바꾼다. 11/16에 Stripe 계열의 푸른 회색·보랏빛 파랑을 중립 회색 + 검정에 가까운 글자 + 파랑 하나로 바꿨다
+   (팀 의견 "AI가 만든 티". 사용자가 고른 참고 화면 Cloudflare 상태 페이지·삼성 스스로해결에서 잰 값). 그림자를 쓰지 않고 선으로 나눈다.
+   글자 대비는 흰 바탕과 페이지 바탕에서 4.5:1 이상 */
 :root[data-theme="light"]{
   color-scheme:light;
-  --bg-base:#f6f9fc; --bg-surface:#ffffff; --bg-input:#f0f4f9;
-  --border-subtle:#e6ebf1; --border-strong:#d5dbe3;
-  --text-primary:#2a2f45; --text-secondary:#4f566b; --text-muted:#64708a; --text-on-accent:#ffffff;
-  --accent:#4258d6; --accent-bg:rgba(66,88,214,.10);
-  --success:#17733d; --success-bg:rgba(23,115,61,.10);
-  --warning:#8f5300; --warning-bg:rgba(143,83,0,.10);
-  --critical:#c0332a; --critical-bg:rgba(192,51,42,.08);   /* 페이지 바탕 위 4.70 (11/4) */
+  --bg-base:#f5f5f4; --bg-surface:#ffffff; --bg-input:#efefed;
+  --border-subtle:#e1e1dd; --border-strong:#c4c4be;
+  --text-primary:#1a1a19; --text-secondary:#4d4d4a; --text-muted:#63635e; --text-on-accent:#ffffff;
+  --accent:#0a5fd8; --accent-bg:rgba(10,95,216,.09);
+  --success:#1a7044; --success-bg:rgba(26,112,68,.10);   /* 왼쪽 칸(#f5f5f4) 위 옅은 바탕의 11px 굵은 글자도 4.5:1 이상 */
+  --warning:#8a4b00; --warning-bg:#fff6e8;
+  --critical:#b3261e; --critical-bg:rgba(179,38,30,.08);
+  --radius-lg:8px; --radius-xl:8px;
 }

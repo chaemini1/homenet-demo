@@ -3,7 +3,7 @@
 // 자동 감지(서버가 안 되면 데모로)는 하지 않는다: 서버 고장을 그럴듯한 예시 화면으로 덮는 침묵 실패가 되기 때문.
 export let demoBroken = false;   // true면 app.js가 재시도 버튼을 새로고침으로 바꾼다
 const demo = document.documentElement.dataset.mode === 'demo'
-  && Promise.all([import('./demo.js?v=4e4df242'), import('./fixtures.js?v=4e4df242')])
+  && Promise.all([import('./demo.js?v=55856d0c'), import('./fixtures.js?v=55856d0c')])
     // 브라우저가 실패한 import를 기억해서 다시 시도로는 안 풀린다 → 새로고침 안내 (demoBroken)
     .catch(() => { demoBroken = true; throw new Error('데모 파일을 받지 못했습니다. 새로고침(F5)해 주십시오'); })
     .then(([d, f]) => d.createServer(f.default));
@@ -16,7 +16,8 @@ export const getSettings = () => call('/settings');
 export const getKg = () => call('/kg');
 export const getExpert = sessionId => call(sessionId ? `/expert?session=${encodeURIComponent(sessionId)}` : '/expert');
 export const startDiagnosis = (scenario = 'wifi') => call('/diagnose/start', { scenario });
-export const advance = (sessionId, event, value = null, text) => call(`/diagnose/${encodeURIComponent(sessionId)}/advance`, text === undefined ? { event, value } : { event, value, text });
+// 진행은 20초: 서버가 KG 조회 중 Neo4j 연결을 최대 8초 기다리므로, 8초면 서버의 'KG를 불러오지 못함' 답보다 먼저 끊긴다
+export const advance = (sessionId, event, value = null, text) => call(`/diagnose/${encodeURIComponent(sessionId)}/advance`, text === undefined ? { event, value } : { event, value, text }, 20000);
 
 async function call(path, body, timeoutMs = 8000) {
   if (demo) {
@@ -25,7 +26,7 @@ async function call(path, body, timeoutMs = 8000) {
     if (r.status !== 200) throw toError(r.status, b);
     return b;
   }
-  // 서버나 와이파이가 멈추면 await가 영영 안 끝나 이후 클릭이 전부 무시된다 → 8초에 끊고 오류로 보여 준다
+  // 서버나 와이파이가 멈추면 await가 영영 안 끝나 이후 클릭이 전부 무시된다 → 기본 8초에 끊고 오류로 보여 준다
   const opts = { signal: AbortSignal.timeout(timeoutMs) };
   if (body !== undefined) Object.assign(opts, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   try {

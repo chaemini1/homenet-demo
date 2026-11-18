@@ -1,12 +1,10 @@
-/* 승인된 D 시안. SUITE와 표지의 색은 이 화면 안에서만 사용한다. 다크는 검은 표지, 라이트는 흰 표지. */
+/* 승인된 D 시안. SUITE는 이 화면 안에서만 사용한다. 표지 색은 앱 토큰을 따른다: 다크는 앱과 같은 어두운 회색 + 흰 버튼, 라이트는 흰 표지.
+   11/17: 새까만 표지(#000) + 연두 버튼(#cdea50)을 뺐다 (사용자: "다크가 AI 티가 가장 심함"). */
 @font-face{font-family:'SUITE Variable';font-style:normal;font-weight:300 900;font-display:block;src:url('fonts/suite/SUITE-Variable.woff2') format('woff2')}
-.first-page-screen{--font-ui:'SUITE Variable','Gothic A1',sans-serif;--cover-bg:#000;--cover-text:#f5f5f5;--cover-secondary:#b8b8be;--cover-muted:#939399;min-height:100vh;background:var(--bg-base);font-family:var(--font-ui)}
+.first-page-screen{--font-ui:'SUITE Variable','Gothic A1',sans-serif;--cover-bg:var(--bg-base);--cover-text:var(--text-primary);--cover-secondary:var(--text-secondary);--cover-muted:var(--text-muted);min-height:100vh;background:var(--bg-base);font-family:var(--font-ui)}
 .first-page-screen .first-header,.first-page-screen .intro-cover{background:var(--cover-bg);color:var(--cover-text)}
-/* 검은 표지는 라이트 테마에서도 다크의 라임 버튼을 쓴다. 나머지 앱 토큰에는 영향 없음. */
-.first-page-screen .intro-cover{--accent:#cdea50;--text-on-accent:#141416}
-/* 라이트: 흰 표지에 앱 라이트 색(글자 회청색, 남색 버튼)을 그대로 쓴다. */
-:root[data-theme="light"] .first-page-screen{--cover-bg:var(--bg-surface);--cover-text:var(--text-primary);--cover-secondary:var(--text-secondary);--cover-muted:var(--text-muted)}
-:root[data-theme="light"] .first-page-screen .intro-cover{--accent:inherit;--text-on-accent:inherit}
+/* 라이트: 표지만 페이지 바탕(회색)이 아니라 흰색 */
+:root[data-theme="light"] .first-page-screen{--cover-bg:var(--bg-surface)}
 .first-page-screen .first-header{height:72px;display:flex;align-items:center}
 .first-page-screen .first-header > div{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;letter-spacing:-.02em}
 .first-page-screen .first-brand{display:flex;align-items:center;gap:inherit}
