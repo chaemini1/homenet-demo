@@ -1,5 +1,5 @@
-@import url("tokens.css?v=1d8f70c5");
-@import url("first-page.css?v=1d8f70c5");
+@import url("tokens.css?v=6362d513");
+@import url("first-page.css?v=6362d513");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -97,6 +97,7 @@ button:disabled{cursor:default;opacity:.45}
 .msrc-kind{flex:none;font-size:12px;color:var(--text-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 6px}
 .msrc a{display:inline-flex;align-items:center;min-height:24px;min-width:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 .msrc-note{margin:var(--space-2) 0 0;font-size:14px;color:var(--text-muted)}
+.mnone{margin:0;padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:15px;color:var(--text-muted)}   /* 빈 목록 안내 (전문가 후보 원인) */
 .slm{display:flex;flex-direction:column;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--bg-input);width:100%}
 .slm .head{display:flex;align-items:center;padding-bottom:var(--space-2)}
 .slm .head .t{font:400 12px/1.5 var(--font-mono);color:var(--text-primary);width:43px}
@@ -138,6 +139,10 @@ button:disabled{cursor:default;opacity:.45}
 .kgf-list button{min-height:32px;padding:4px 8px;border:0;border-radius:var(--radius-sm);background:none;color:var(--text-secondary);font:inherit;font-size:14px;line-height:1.4;text-align:left;cursor:pointer;word-break:keep-all}
 .kgf-list button:hover{background:var(--bg-base);color:var(--text-primary)}
 .kgf-list button[aria-pressed="true"]{background:var(--accent-bg);color:var(--text-primary);font-weight:600}
+/* '전체'(11/19): 원인 25개라 목록은 높이를 정하고 그 안에서 넘기며, 그림은 위에 붙인다. 이번 진단에서 나온 원인·증상은 강조색 글자로 */
+.kgf-list{max-height:480px;overflow-y:auto} .kgf-list>*{flex:none} .kgf-body .kgf-pic{align-self:start}   /* flex:none: 높이를 정한 목록에서 두 줄 이름이 눌려 겹치지 않게 */
+.kgf-list button small,.kgf-node small+small{display:block;font-size:12px;font-weight:400;color:var(--accent)}
+.kgf-node.hit{border-color:var(--accent)}
 .kgf-pic{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 164px minmax(0,1fr);gap:0 48px;align-items:center;font-size:15px;line-height:1.45;word-break:keep-all}
 .kgf-pic>svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .kgf-pic path{fill:none;stroke:var(--border-strong);stroke-width:1.25}
@@ -160,6 +165,7 @@ button:disabled{cursor:default;opacity:.45}
   .kgf-body:has(.kgf-list){grid-template-columns:minmax(0,1fr)}
   .kgf-list{flex-direction:row;flex-wrap:wrap;padding:0 0 var(--space-3);border:0;border-bottom:1px solid var(--border-subtle)}
   .kgf-list>span{flex-basis:100%}
+  .kgf-list{max-height:240px}   /* 전체 25개: 휴대폰에서는 목록을 짧게, 그림이 바로 아래 보이게 */
   .kgf-pic{grid-template-columns:minmax(0,1fr);gap:var(--space-4)}
   .kgf-ev{text-align:left} .kgf-ev .kgf-box{margin-left:0}
   .kgf-node{text-align:left}

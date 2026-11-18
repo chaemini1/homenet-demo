@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=1d8f70c5';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFocusHTML, termsHTML } from './render.js?v=1d8f70c5';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=6362d513';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=6362d513';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
+const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgTab: 'now', kgAll: null, kgAllErr: null, kgAllSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
 const SETTINGS_KEY = 'homenet.settings', INTRO_KEY = 'homenet.introSeen';
 const demoMode = document.documentElement.dataset.mode === 'demo';
 const autoScanEnabled = () => {
@@ -345,7 +345,8 @@ export async function showSettings() {
 // 진단 중에 들어오면 그 세션의 추론을 보여주고, 나갈 때 진단 화면으로 되돌아간다 (세션은 건드리지 않는다).
 // KG 카드는 경로(path)가 있을 때만 (빈 상태엔 없음). /kg 실패는 카드 자리에만 알리고 콘솔 나머지는 그대로 그린다
 const kgResult = () => state.session?.payload?.kg_path ? state.session.payload : null;   // 세부 질문 결과: 실제 KG가 답한 경로. 글 없이 온 경로(input 없음)는 분류 후보를 붙이지 않는다
-const kgCard = () => kgResult() ? kgFocusHTML(kgResult().kg_path, kgResult().evidence, kgResult().kg_path.input ? state.ranked ?? [] : [], state.kgCause) : state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
+const kgCard = () => kgResult() && state.kgTab === 'all' ? kgAllHTML(state.kgAll, { sel: state.kgAllSel, path: kgResult().kg_path, evidence: kgResult().evidence, err: state.kgAllErr })
+  : kgResult() ? kgFocusHTML(kgResult().kg_path, kgResult().evidence, kgResult().kg_path.input ? state.ranked ?? [] : [], state.kgCause) : state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
 const kgKnown = () => state.kg && !state.kgErr && state.expert.path && !kgResult() ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
 const paintExpert = () => {
   $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar);
@@ -382,6 +383,19 @@ function repaintKg(focusSel) {
   const old = $('#stage .kg'); if (!old) return;
   old.outerHTML = kgCard(); state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? state.kgSel; markKgLog(); applyKgLabels(); drawKgFocus();
   $(focusSel)?.focus({ preventScroll: true });
+}
+// '이번 진단 | 전체' 탭(11/19). 전체는 처음 열 때 한 번 받는다. 실패하면 카드에 알리고, 탭을 다시 누르면 또 받는다
+async function showKgTab(tab) {
+  state.kgTab = tab;
+  if (tab === 'all' && !state.kgAll) {
+    state.kgAllErr = null; repaintKg('#stage [data-kg-tab="all"]');   // 불러오는 중
+    const visit = viewVersion;
+    try { state.kgAll = await getKgAll(); } catch (e) { state.kgAllErr = e.message; }
+    if (visit !== viewVersion || state.kgTab !== 'all') return;
+  }
+  repaintKg(`#stage [data-kg-tab="${tab}"]`);
+  const list = $('#stage .kgf-list'), on = tab === 'all' && list?.querySelector('[aria-pressed="true"]');
+  if (on) list.scrollTop = on.offsetTop - list.offsetTop - 8;   // 고른 원인이 목록 아래쪽에 있어도 보이게 (창은 움직이지 않는다)
 }
 function selectKg(id, { focus = false, reveal = false } = {}) {
   const svg = $('#stage .kg-svg'), n = svg?.querySelector(`.kg-n[data-kg="${id}"]`);
@@ -449,7 +463,7 @@ export async function showExpert() {
     if (e.status === 404) return sessionLost(() => route('home'));   // /expert도 세션이 없으면 404 (주소가 #expert라 홈은 route로)
     showError('#stage', new Error(`전문가 콘솔을 불러오지 못했습니다: ${e.message}`), showExpert); return;
   }
-  state.kgErr = null; state.kgCause = 0;
+  state.kgErr = null; state.kgCause = 0; state.kgTab = 'now'; state.kgAllSel = null;   // 들어올 때마다 이번 진단부터 (11/19 사용자)
   if (state.expert.path && !kgResult()) await loadKg().catch(e => { state.kgErr = e.message; });
   if (visit !== viewVersion) return;
   paintExpert();
@@ -642,15 +656,16 @@ document.addEventListener('input', e => {
   const next = $('#stage [data-event="answer"]'); if (next) next.disabled = !state.selectedAnswer;
 });
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-kgf],[data-rail-toggle]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-kg-tab],[data-kgf],[data-rail-toggle]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
   if (el.dataset.kgf) {   // 그림만 바꾼다: 카드 전체를 바꾸면 누른 버튼이 사라져 iOS Safari가 화면을 아래로 튀게 한다(11/18 시뮬레이터)
-    state.kgCause = Number(el.dataset.kgf);
+    state[state.kgTab === 'all' ? 'kgAllSel' : 'kgCause'] = Number(el.dataset.kgf);
     const t = document.createElement('div'); t.innerHTML = kgCard();
     $('#stage .kgf-pic').replaceWith(t.querySelector('.kgf-pic'));
     el.parentNode.querySelectorAll('[data-kgf]').forEach(b => b.setAttribute('aria-pressed', String(b === el)));
     return void drawKgFocus();
   }
+  if (el.dataset.kgTab) return void showKgTab(el.dataset.kgTab);
   if (el.dataset.kgView) { state.kgView = el.dataset.kgView; return void repaintKg(`#stage [data-kg-view="${el.dataset.kgView}"]`); }
   if (el.dataset.kg) {
     if (kgDragged === el && e.detail) { kgDragged = null; return; }

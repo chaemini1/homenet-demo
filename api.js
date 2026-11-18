@@ -3,7 +3,7 @@
 // 자동 감지(서버가 안 되면 데모로)는 하지 않는다: 서버 고장을 그럴듯한 예시 화면으로 덮는 침묵 실패가 되기 때문.
 export let demoBroken = false;   // true면 app.js가 재시도 버튼을 새로고침으로 바꾼다
 const demo = document.documentElement.dataset.mode === 'demo'
-  && Promise.all([import('./demo.js?v=1d8f70c5'), import('./fixtures.js?v=1d8f70c5')])
+  && Promise.all([import('./demo.js?v=6362d513'), import('./fixtures.js?v=6362d513')])
     // 브라우저가 실패한 import를 기억해서 다시 시도로는 안 풀린다 → 새로고침 안내 (demoBroken)
     .catch(() => { demoBroken = true; throw new Error('데모 파일을 받지 못했습니다. 새로고침(F5)해 주십시오'); })
     .then(([d, f]) => d.createServer(f.default));
@@ -14,6 +14,7 @@ export const getRecords = () => call('/records');
 export const clearRecords = () => call('/records/clear', {});
 export const getSettings = () => call('/settings');
 export const getKg = () => call('/kg');
+export const getKgAll = () => call('/kg/all', undefined, 20000);   // 전문가 '전체' 탭: 지식그래프 전체를 원인 중심으로. Neo4j 모드는 증상 25개를 차례로 조회해서 기본 8초보다 길게
 export const getExpert = sessionId => call(sessionId ? `/expert?session=${encodeURIComponent(sessionId)}` : '/expert');
 export const startDiagnosis = (scenario = 'wifi') => call('/diagnose/start', { scenario });
 // 진행은 20초: 서버가 KG 조회 중 Neo4j 연결을 최대 8초 기다리므로, 8초면 서버의 'KG를 불러오지 못함' 답보다 먼저 끊긴다

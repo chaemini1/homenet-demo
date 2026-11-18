@@ -161,6 +161,18 @@ function followupLog(s, key, screens) {
   return [];
 }
 
+export function kgOverview(K, screens) {                                           // kg_bridge.overview (Neo4j 대신 미리 물어 둔 답)
+  const causes = new Map();
+  for (let i = 1; i <= 25; i++) {
+    const sid = `WFS${String(i).padStart(2, '0')}`;
+    for (const symptom of K.answers[K.index[`${sid}||`]].symptoms) for (const cause of symptom.candidates) {
+      if (!causes.has(cause.label)) causes.set(cause.label, { name: cause.label, symptoms: [], conditions: cause.conditions, actions: cause.actions });
+      causes.get(cause.label).symptoms.push({ id: sid, title: screens[`followup_${sid}`].headline.title });
+    }
+  }
+  return { source: 'saved', causes: [...causes.values()] };
+}
+
 export function kgApply(s, p, K, screens = null) {                                      // kg_bridge.apply (Neo4j 조회 대신 미리 물어 둔 답)
   if (s.key !== 'followup_done') return p;
   const seeds = new Set([...Array.from({ length: 15 }, (_, i) => `followup_WFQ${String(i + 1).padStart(2, '0')}`), ...[...VALID].map(v => 'followup_' + v)]);
@@ -381,6 +393,7 @@ export function createServer(F, { now = clock, newId = hex8, intent = Boolean(F[
     if (method === 'POST' && p === '/records/clear') { RECORDS = []; saveRecords(RECORDS); return { cleared: true }; }
     if (method === 'GET' && p === '/settings') return load('settings.json');
     if (method === 'GET' && p === '/kg') return load('kg.json');
+    if (method === 'GET' && p === '/kg/all') return kgOverview(F['kg_answers.json'], F['screens.json']);
     if (method === 'GET' && p === '/expert') return getExpert(u.searchParams.get('session'));
     if (method === 'POST' && p === '/diagnose/start') return start(body);
     if (method === 'POST' && m) return advance(decodeURIComponent(m[1]), body);
