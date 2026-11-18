@@ -64,7 +64,7 @@ const kgGroups = rows => {
   return { causes, rest };
 };
 const kgRestHTML = rest => rest.map(m => metricRowHTML(m) + sourcesHTML(m.sources)).join('') + (rest.some(m => m.sources?.length) ? '<p class="msrc-note">출처는 참고용이며 실제 측정 결과와 별개입니다.</p>' : '');
-export function kgPathHTML(path, evidence) {
+export function kgPathHTML(path, evidence, draw = true) {
   let n = 0;   // 나타나는 순번: 위에서부터 차례로 보이게 한다 (app.css .kp-node의 animation-delay)
   const node = (cls, k, v, extra = '') => `<li class="kp-node ${cls}" style="--i:${n++}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}${extra}</span></li>`;
   const query = [path.device && `기기 ${path.device}`, path.os && `운영체제 ${path.os}`].filter(Boolean).join(' · ');
@@ -76,31 +76,31 @@ export function kgPathHTML(path, evidence) {
     const last = i === causes.length - 1 ? ' last' : '';
     return node('lv1' + last, c.label, c.value) + kids.map(m => node('lv2' + last, ...step(m))).join('');
   }).join('');
-  return `<div class="mlist kgpath"><div class="mhead"><b>KG 경로</b>${path.input ? '<span>증상까지는 분류기, 그 뒤는 KG입니다.</span>' : ''}</div><ol class="kp-tree" style="--step:${Math.min(180, Math.round(1500 / n))}ms">${head}${tree}</ol>${kgRestHTML(rest)}</div>`;
+  return `<div class="mlist kgpath"><div class="mhead"><b>찾은 경로</b></div><ol class="kp-tree${draw ? ' draw' : ''}" style="--step:${Math.min(180, Math.round(1500 / n))}ms">${head}${tree}</ol>${kgRestHTML(rest)}</div>`;
 }
-// 전문가 KG(이번 진단, Y14a): 증상 후보 → 원인 → 조건 → 조치 → 절차 열. 원인 후보 하나가 한 줄.
-// 고른 증상·절차는 강조색, 고르지 않은 분류 후보는 흐리게(선 없음). 선은 글자 끝에서 다음 열까지, 원인이 둘 이상이면 갈래(.br).
-// DOM 순서 = 읽는 순서: 열 머리 → 고른 증상 → 원인 줄들 → 고르지 않은 후보. 자리는 grid-area로 따로 정한다
-export function kgColumnsHTML(path, evidence, ranked = []) {
+// 전문가 KG(이번 진단, net-solo 방식 11/18 사용자): 원인 후보 하나를 가운데 두고, 왼쪽에 그 원인을 가리킨 근거(고른 증상·확인할 조건),
+// 오른쪽에 해 보는 조치(펼치면 OS별 상세 절차). 원인이 여럿이면 위에서 고른다(sel). 선은 그린 뒤 app.js drawKgFocus가 긋는다
+const nw = s => esc(s).replace(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+|[^\s·]+(?:·[^\s·]+)+/g, '<span class="nw">$&</span>');   // 좁은 칸에서 Wi-Fi가 Wi-/Fi로, 설정·조회가 설정/·조회로 끊기지 않게
+export function kgFocusHTML(path, evidence, ranked = [], sel = 0) {
   const { causes, rest } = kgGroups(evidence.rows);
-  const picked = ranked.find(a => a.title === path.symptom) ?? { title: path.symptom };
-  const others = ranked.filter(a => a !== picked);
-  const sub = a => [a.id, a.score, a === picked && ranked.length > 1 && '고름'].filter(Boolean).join(', ');
-  const kv = (t, s, cls = '') => `<span class="kv${cls}">${esc(t).replace(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g, '<span class="nw">$&</span>')}${s ? `<small>${esc(s)}</small>` : ''}</span>`;   // 좁은 열에서 Wi-Fi가 Wi-/Fi로 끊기지 않게
-  const cell = (row, col, html, cls = '') => `<div class="kc c${col}${cls}" style="grid-area:${row + 2}/${col}">${html}</div>`;
-  const heads = [ranked.length > 1 ? '증상 후보' : '증상', '원인', '조건', '조치', path.os ? `절차 (${path.os})` : '절차'].map(h => `<div class="kh">${esc(h)}</div>`).join('');
-  const rows = causes.map(([c, ...kids], i) => {
-    const pick = l => kids.find(m => m.label === l)?.value ?? '';
-    const procs = kids.filter(m => m.label.startsWith('상세 절차 · ')).map(m => kv(m.label.slice(8), (m.value.split(' 적용 조건: ')[1] ?? '').split(' · ').join(', '), ' on'));
-    const cols = [kv(c.value), pick('확인할 조건') && kv(pick('확인할 조건')), pick('확인·조치') && kv(pick('확인·조치')), procs.join('')];
-    const br = causes.length > 1 ? ` br${i === 0 ? ' top' : ''}${i === causes.length - 1 ? ' end' : ''}` : '';
-    const html = cols.map((h, k) => h || (k === 3 ? kv('절차 없음', '', ' none') : ''));   // 절차 노드가 없으면 글자만, 조치에서 선은 긋지 않는다
-    return html.map((h, k) => h ? cell(i, k + 2, (k === 0 && br ? '<i class="kt"></i>' : '') + h, (k === 0 ? br : '') + (k < 3 && cols[k + 1] ? ' ln' : '')) : '').join('');
-  }).join('');
-  const q = path.input ? `<p class="kgc-q">“${esc(path.input)}”${path.device || path.os ? `<small>${esc([path.device, path.os].filter(Boolean).join(', '))}</small>` : ''}</p>` : '';
-  return `<section class="card kg kgc-card" aria-labelledby="kg-h"><div class="chead"><b id="kg-h">지식그래프</b><span>이번 진단</span></div>${q}`
-    + `<div class="kgc-scroll"><div class="kgc">${heads}${cell(0, 1, kv(picked.title, sub(picked), ' on'), causes.length ? ' ln' : '')}${rows}`
-    + others.map((a, j) => cell(j + 1, 1, kv(a.title, sub(a)), ' dim')).join('') + `</div></div>${kgRestHTML(rest)}</section>`;
+  const i = causes[sel] ? sel : 0, [cause, ...kids] = causes[i] ?? [];
+  const picked = ranked.find(a => a.title === path.symptom);
+  const box = (kind, text, sub = '', cls = '') => `<div class="kgf-box${cls}" data-end><small>${esc(kind)}</small>${nw(text)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  const actions = [];
+  for (const m of kids) {                                                    // 상세 절차는 바로 앞 조치에 딸린다 (kg_bridge가 조치 다음에 넣는다)
+    if (m.label === '확인·조치') actions.push({ text: m.value, procs: [] });
+    else if (m.label.startsWith('상세 절차 · ') && actions.length) actions.at(-1).procs.push(m);
+  }
+  const proc = m => { const [body, scope] = m.value.split(' 적용 조건: '); return `<p class="kgf-proc"><b>${nw(m.label.slice(8))}</b>${esc(body)}${scope ? `<small>${esc(scope)}</small>` : ''}</p>`; };
+  const act = a => a.procs.length ? `<details class="kgf-box" data-end><summary>${nw(a.text)}<small>절차 ${a.procs.length}개 보기</small></summary>${a.procs.map(proc).join('')}</details>`
+    : `<div class="kgf-box" data-end>${nw(a.text)}<small>절차 없음</small></div>`;
+  const q = path.input ? `<p class="kgf-q">“${esc(path.input)}”${path.device || path.os ? `<small>${esc([path.device, path.os].filter(Boolean).join(', '))}</small>` : ''}</p>` : '';
+  const list = causes.length > 1 ? `<div class="kgf-list" role="group" aria-labelledby="kgf-lh"><span id="kgf-lh">원인 후보</span>${causes.map(([c], k) => `<button type="button" data-kgf="${k}" aria-pressed="${k === i}">${nw(c.value)}</button>`).join('')}</div>` : '';
+  const pic = cause ? `<div class="kgf-pic"><svg aria-hidden="true"></svg>`
+    + `<div class="kgf-ev"><p class="kgf-h">근거</p>${box('증상', path.symptom, picked ? [picked.id, picked.score, ranked.length > 1 && '고름'].filter(Boolean).join(', ') : '', ' hit')}${kids.filter(m => m.label === '확인할 조건').map(m => box('확인할 조건', m.value)).join('')}</div>`
+    + `<div class="kgf-node"><small>원인 후보${causes.length > 1 ? ` ${i + 1}/${causes.length}` : ''}</small>${nw(cause.value)}</div>`
+    + `<div class="kgf-act"><p class="kgf-h">조치${path.os ? ` (${esc(path.os)})` : ''}</p>${actions.map(act).join('')}</div></div>` : '';
+  return `<section class="card kg kgf-card" aria-labelledby="kg-h"><div class="chead"><b id="kg-h">지식그래프</b><span>이번 진단</span></div>${q}<div class="kgf-body">${list}${pic}</div>${kgRestHTML(rest)}</section>`;
 }
 export function stepConfirmHTML(s, index) {
   const active = s.state === 'todo';

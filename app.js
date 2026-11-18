@@ -1,8 +1,8 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=55856d0c';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgColumnsHTML, termsHTML } from './render.js?v=55856d0c';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getExplanation, demoBroken } from './api.js?v=1d8f70c5';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFocusHTML, termsHTML } from './render.js?v=1d8f70c5';
 
 const $ = s => document.querySelector(s);
-const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
+const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
 const SETTINGS_KEY = 'homenet.settings', INTRO_KEY = 'homenet.introSeen';
 const demoMode = document.documentElement.dataset.mode === 'demo';
 const autoScanEnabled = () => {
@@ -34,6 +34,10 @@ const scenario = ['outside', 'normal', 'followup'].find(s => s === new URLSearch
 // 데모 빌드의 예시 링크(build-static.py가 넣음): 지금 보고 있는 예시를 표시. 서버 모드엔 이 링크가 없다
 document.querySelectorAll('[data-scenario]').forEach(a => { if (a.dataset.scenario === scenario) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); } });
 
+// KG 경로는 그 결과가 처음 그려질 때만 위에서부터 그린다 (탭을 오가거나 테마를 바꿔 다시 그릴 때는 바로 보인다)
+let kgDrawn = null;
+const drawKgPath = () => kgDrawn !== state.session?.payload && Boolean(kgDrawn = state.session?.payload);
+
 export const SCREENS = {
   home: s => ({
     rail: railHomeHTML(s),
@@ -48,8 +52,7 @@ export const SCREENS = {
   result: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + termsHTML(headlineHTML(p.headline)   // 용어 설명은 결과의 글과 목록에만 (경로 칸 이름에는 붙이지 않는다)
-      + `<div class="detail">${p.kg_path && state.kgPathOpen ? kgPathHTML(p.kg_path, p.evidence) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`)
-      + (p.kg_path ? `<button type="button" class="ghost link" data-kg-path aria-expanded="${!!state.kgPathOpen}">${state.kgPathOpen ? 'KG 경로 접기' : 'KG 경로 보기'}</button>` : '')
+      + `<div class="detail">${p.kg_path ? kgPathHTML(p.kg_path, p.evidence, drawKgPath()) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`)
       + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>' + actionsHTML(p.actions),
   }),
   steps: p => ({
@@ -342,13 +345,28 @@ export async function showSettings() {
 // 진단 중에 들어오면 그 세션의 추론을 보여주고, 나갈 때 진단 화면으로 되돌아간다 (세션은 건드리지 않는다).
 // KG 카드는 경로(path)가 있을 때만 (빈 상태엔 없음). /kg 실패는 카드 자리에만 알리고 콘솔 나머지는 그대로 그린다
 const kgResult = () => state.session?.payload?.kg_path ? state.session.payload : null;   // 세부 질문 결과: 실제 KG가 답한 경로. 글 없이 온 경로(input 없음)는 분류 후보를 붙이지 않는다
-const kgCard = () => kgResult() ? kgColumnsHTML(kgResult().kg_path, kgResult().evidence, kgResult().kg_path.input ? state.ranked ?? [] : []) : state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
+const kgCard = () => kgResult() ? kgFocusHTML(kgResult().kg_path, kgResult().evidence, kgResult().kg_path.input ? state.ranked ?? [] : [], state.kgCause) : state.kgErr ? `<p class="state err" role="alert">지식그래프를 불러오지 못했습니다: ${esc(state.kgErr)}</p>` : kgGraphHTML(state.kg, state.expert.path, { sel: state.kgSel, log: state.expert.log.entries, view: state.kgView });
 const kgKnown = () => state.kg && !state.kgErr && state.expert.path && !kgResult() ? new Set(state.kg.nodes.map(n => n.id)) : null;   // 로그의 id를 버튼으로 바꿀 대상
 const paintExpert = () => {
   $('#nav-expert').innerHTML = expertTopbarHTML(state.expert.topbar);
   paint({ rail: expertRailHTML(state.expert.log, kgKnown(), state.railCollapsed), stage: expertStageHTML(state.expert, state.expert.path || kgResult() ? kgCard() : '') }, 'expert');
-  state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? null; markKgLog(); applyKgLabels();
+  state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? null; markKgLog(); applyKgLabels(); drawKgFocus();
 };
+// 이번 진단 KG(net-solo 방식)의 선: 근거 오른쪽 끝 → 원인 상자 왼쪽 변, 원인 상자 오른쪽 변 → 조치 왼쪽 끝. 상자 변에는 고르게 나눠 닿는다.
+// 좁은 화면에서 세로로 쌓이면(원인 상자가 근거 아래) 선을 지운다
+function drawKgFocus() {
+  const pic = $('#stage .kgf-pic'); if (!pic?.getBoundingClientRect) return;
+  const o = pic.getBoundingClientRect(), n = pic.querySelector('.kgf-node').getBoundingClientRect(), svg = pic.querySelector('svg');
+  const ev = [...pic.querySelectorAll('.kgf-ev [data-end]')], act = [...pic.querySelectorAll('.kgf-act [data-end]')];
+  if (ev[0] && ev[0].getBoundingClientRect().right > n.left) return void (svg.innerHTML = '');
+  const fan = (rows, left) => rows.map((r, i) => {
+    const b = (r.querySelector('summary') ?? r).getBoundingClientRect();
+    const x1 = (left ? b.right + 8 : n.right) - o.left, x2 = (left ? n.left : b.left - 8) - o.left, m = (x1 + x2) / 2;
+    const yn = n.top + n.height * (i + 1) / (rows.length + 1) - o.top, yr = b.top + b.height / 2 - o.top, [y1, y2] = left ? [yr, yn] : [yn, yr];
+    return `<path${r.classList.contains('hit') ? ' class="hit"' : ''} d="M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}"/>`;
+  }).join('');
+  svg.innerHTML = fan(ev, true) + fan(act, false);
+}
 // 노드 선택은 제자리 갱신만: 노드 클래스·aria·tabindex, 패널, 해당 로그 줄 강조. 무대 전체를 다시 그리지 않는다 (스크롤·포커스 유지)
 const markKgLog = () => document.querySelectorAll('#rail .logrow').forEach(r => r.classList.toggle('hit', !!state.kgSel && !!r.querySelector(`[data-kg="${state.kgSel}"]`)));
 // 왼쪽 칸(추론 로그, 진단 단계 등) 접기/펴기: 칸을 다시 그리지 않고 클래스·버튼 글자만 바꾼다(스크롤·포커스 유지). 접은 상태는 기억한다(이 브라우저에만)
@@ -362,7 +380,7 @@ function toggleRail() {
 // 카드만 다시 그린다(보기 전환·이번 경로 밖 노드 선택). 선택·로그 강조·ID 라벨은 다시 맞추고, 포커스는 요청한 요소로
 function repaintKg(focusSel) {
   const old = $('#stage .kg'); if (!old) return;
-  old.outerHTML = kgCard(); state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? state.kgSel; markKgLog(); applyKgLabels();
+  old.outerHTML = kgCard(); state.kgSel = $('#stage .kg-n.sel')?.dataset.kg ?? state.kgSel; markKgLog(); applyKgLabels(); drawKgFocus();
   $(focusSel)?.focus({ preventScroll: true });
 }
 function selectKg(id, { focus = false, reveal = false } = {}) {
@@ -431,7 +449,7 @@ export async function showExpert() {
     if (e.status === 404) return sessionLost(() => route('home'));   // /expert도 세션이 없으면 404 (주소가 #expert라 홈은 route로)
     showError('#stage', new Error(`전문가 콘솔을 불러오지 못했습니다: ${e.message}`), showExpert); return;
   }
-  state.kgErr = null;
+  state.kgErr = null; state.kgCause = 0;
   if (state.expert.path && !kgResult()) await loadKg().catch(e => { state.kgErr = e.message; });
   if (visit !== viewVersion) return;
   paintExpert();
@@ -490,6 +508,9 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && tip) { hideTip(); e.stopPropagation(); } }, true);
 window.addEventListener('scroll', hideTip, { passive: true }); window.addEventListener('resize', hideTip);
+// 무대 폭(창 크기, 왼쪽 칸 접기)이나 조치 펼침이 바뀌면 이번 진단 KG의 선을 다시 긋는다 (toggle은 위로 전달되지 않아서 capture로 받는다)
+if (typeof ResizeObserver === 'function') new ResizeObserver(drawKgFocus).observe($('#stage'));
+document.addEventListener('toggle', e => e.target.closest?.('.kgf-pic') && drawKgFocus(), true);
 
 // W1: 재는 항목을 0.6초에 한 줄씩 드러내고(5줄 = 3초), 다 드러나면 자동으로 다음 화면.
 function revealMeasuring(p, n) {
@@ -519,9 +540,13 @@ export async function send(event, value = null) {
     // 그리지 않고 가던 방향으로 한 칸 더 간다. 서버 흐름과 지나온 길 기록은 그대로다 (KG 조회가 그 기록을 본다). 둘째 요청이 실패하면 이 화면이 그려져 버튼으로 넘어갈 수 있다
     if (isPassScreen(r.payload)) { if (dropped()) return; state.session = r; r = await advance(r.session_id, event === 'back' ? 'back' : 'next'); }
     if (dropped()) return;
-    state.session = r; state.kgPathOpen = false; if (r.payload.intent) state.ranked = r.payload.intent.ranked ?? r.payload.answers.filter(a => a.score);   // 분류 후보는 전문가 KG의 첫 열. 모호하면 보여 주기만 하는 intent.ranked로 온다
+    state.session = r; if (r.payload.intent) state.ranked = r.payload.intent.ranked ?? r.payload.answers.filter(a => a.score);   // 분류 후보: 전문가 KG 근거에서 고른 증상의 id·점수. 모호하면 보여 주기만 하는 intent.ranked로 온다
     state.text = r.payload.text_input?.value ?? ''; state.selectedAnswer = state.text && !r.payload.intent ? 'text' : pickedFor(r.payload);   // 다시 묻는 화면은 앞에서 쓴 글을 돌려준다
-    if (event === 'scan_done') r.explain = true;   // 진단 결과 화면에는 SLM 추가 설명을 붙인다(다른 탭에 있었으면 돌아올 때 render가 붙인다)
+    // 진단 결과 화면에는 SLM 추가 설명을 붙인다. '이전'으로 같은 결과 화면에 돌아와도 같은 설명을 쓴다(다른 탭에 있었으면 돌아올 때 render가 붙인다)
+    if (r.payload.screen === 'scanning') state.scanResult = null;   // 다시 점검하면 앞선 측정의 설명은 쓰지 않는다 (건너뛰기 결과에 붙지 않게)
+    if (event === 'scan_done') state.scanResult = { sid: r.session_id, title: r.payload.headline?.title };
+    const scan = state.scanResult;
+    if (scan?.sid === r.session_id && r.payload.screen === 'result' && r.payload.headline?.title === scan.title) r.explain = scan;
     if (state.view !== 'home') return;   // 기록·설정·전문가·첫 페이지를 보는 중이면 덮지 않는다(진단 탭으로 돌아오면 render가 이 진단을 그린다)
     showScreen(r.payload); if (r.explain) void requestExplanation(r); }
   catch (e) {
@@ -552,12 +577,13 @@ async function requestExplanation(session) {
   note.textContent = '측정 진단은 완료됐습니다. 추가 설명을 준비하고 있어요.';
   headline.appendChild(note);
   const current = () => state.session === session && viewVersion === visit && note.isConnected;
+  const hold = typeof session.explain === 'object' ? session.explain : (session.explain = {});   // 진단 결과 화면이 같으면 같은 상자(send의 scanResult)를 공유한다
   try {
-    const result = await (session.explaining ??= getExplanation(session.session_id));   // 탭을 오가도 한 번만 요청한다
+    const result = await (hold.request ??= getExplanation(session.session_id));   // 탭을 오가거나 '이전'으로 돌아와도 한 번만 요청한다
     if (!current()) return;
     note.textContent = '추가 설명: ' + result.text;
   } catch (_) {
-    session.explaining = null;   // 실패하면 다음에 돌아올 때 다시 요청
+    hold.request = null;   // 실패하면 다음에 돌아올 때 다시 요청
     if (!current()) return;
     note.textContent = '추가 설명을 불러오지 못했습니다. 측정 진단 결과는 그대로 사용할 수 있어요.';
   }
@@ -616,9 +642,15 @@ document.addEventListener('input', e => {
   const next = $('#stage [data-event="answer"]'); if (next) next.disabled = !state.selectedAnswer;
 });
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-rail-toggle],[data-kg-path]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-event],[data-answer],[data-example],[data-nav],[data-rec],[data-secnav],[data-set],[data-expert-off],[data-kg],[data-kg-view],[data-kgf],[data-rail-toggle]'); if (!el || el.disabled) return;
   if (el.dataset.railToggle !== undefined) return void toggleRail();
-  if (el.dataset.kgPath !== undefined) { state.kgPathOpen = !state.kgPathOpen; return void showScreen(state.session.payload); }   // 같은 화면 다시 그리기: paint가 포커스를 이 버튼으로 돌려놓는다
+  if (el.dataset.kgf) {   // 그림만 바꾼다: 카드 전체를 바꾸면 누른 버튼이 사라져 iOS Safari가 화면을 아래로 튀게 한다(11/18 시뮬레이터)
+    state.kgCause = Number(el.dataset.kgf);
+    const t = document.createElement('div'); t.innerHTML = kgCard();
+    $('#stage .kgf-pic').replaceWith(t.querySelector('.kgf-pic'));
+    el.parentNode.querySelectorAll('[data-kgf]').forEach(b => b.setAttribute('aria-pressed', String(b === el)));
+    return void drawKgFocus();
+  }
   if (el.dataset.kgView) { state.kgView = el.dataset.kgView; return void repaintKg(`#stage [data-kg-view="${el.dataset.kgView}"]`); }
   if (el.dataset.kg) {
     if (kgDragged === el && e.detail) { kgDragged = null; return; }

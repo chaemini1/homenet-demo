@@ -1,5 +1,5 @@
-@import url("tokens.css?v=55856d0c");
-@import url("first-page.css?v=55856d0c");
+@import url("tokens.css?v=1d8f70c5");
+@import url("first-page.css?v=1d8f70c5");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -121,34 +121,54 @@ button:disabled{cursor:default;opacity:.45}
    위에서 아래로 그리고, 선이 점(칸 높이의 약 45%)에 닿으면 갈래 선·점·이름·값이 나타난다. 순번·간격은 render.js. 위치는 움직이지 않는다.
    backwards만 쓴다: 끝난 뒤까지 남기면(both) 쌓임 맥락이 남아 용어 설명 상자가 아래 항목 글자에 덮인다 */
 .kp-node{--t:calc(var(--i) * var(--step));--hit:calc(var(--t) + var(--step) * .45)}
-.kp-node::before,.kp-node.lv2 .k::before{transform-origin:top;animation:kp-down var(--step) linear backwards;animation-delay:var(--t)}
-.kp-node.lv1 .k::before,.kp-node.lv2 .k::after{transform-origin:left;animation:kp-right calc(var(--step) * .3) linear backwards;animation-delay:var(--hit)}
-.kp-node::after{animation:kp-dot .2s ease-out backwards;animation-delay:var(--hit)}
-.kp-node .k{animation:kp-text .25s ease-out backwards;animation-delay:var(--hit)}   /* 글자색만 움직인다: .k에 달린 갈래 선은 따로 그려진다 */
-.kp-node .v{animation:fade .25s ease-out backwards;animation-delay:var(--hit)}
-/* 전문가 KG(이번 진단): 글자와 가는 회색 선만. 선은 글자 끝(.ln::after)에서 열 경계까지, 원인 갈래는 경계의 세로선(.kt)과 짧은 가지(.br::before).
-   칸 아래 여백을 칸 안(padding)에 두어 세로선이 줄 사이에서 끊기지 않게 한다. 좁은 화면은 가로 스크롤 */
-.kgc-q{margin:0;font-size:17px;font-weight:600}
-.kgc-q small{display:block;margin-top:2px;font-size:14px;font-weight:400;color:var(--text-muted)}
-.kgc-scroll{overflow-x:auto;margin-bottom:var(--space-2)}
-.kgc{--y:.72em;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));min-width:760px;font-size:15px;line-height:1.45}
-.kgc .kh{padding:0 0 var(--space-2) 16px;margin-bottom:var(--space-4);border-bottom:1px solid var(--border-subtle);font-size:13px;color:var(--text-muted)}
-.kgc .kh:first-child,.kc.c1{padding-left:0}
-.kc{position:relative;display:flex;align-items:flex-start;min-width:0;padding:0 0 var(--space-5) 16px}
-.kc.c5{flex-direction:column;gap:var(--space-3)}
-.kv{min-width:0;max-width:8em}   /* 글자가 열을 다 채우면 다음 열로 가는 선이 점처럼 짧아진다 */
-.kc.c5 .kv{max-width:none}
-.kv small{display:block;margin-top:2px;font-size:12px;color:var(--text-muted)}
-.kv.on{color:var(--accent)} .kc.dim .kv,.kv.none{color:var(--text-muted)}
-.kc.ln::after{content:'';flex:1 0 12px;margin:var(--y) 0 0 12px;border-top:1px solid var(--border-strong)}
-.kc.br::before{content:'';position:absolute;left:0;top:var(--y);width:10px;border-top:1px solid var(--border-strong)}
-.kt{position:absolute;left:0;top:0;bottom:0;border-left:1px solid var(--border-strong)}
-.kc.top .kt{top:var(--y)} .kc.end .kt{bottom:auto;height:var(--y)}
+.draw .kp-node::before,.draw .kp-node.lv2 .k::before{transform-origin:top;animation:kp-down var(--step) linear backwards;animation-delay:var(--t)}
+.draw .kp-node.lv1 .k::before,.draw .kp-node.lv2 .k::after{transform-origin:left;animation:kp-right calc(var(--step) * .3) linear backwards;animation-delay:var(--hit)}
+.draw .kp-node::after{animation:kp-dot .2s ease-out backwards;animation-delay:var(--hit)}
+.draw .kp-node .k{animation:kp-text .25s ease-out backwards;animation-delay:var(--hit)}   /* 글자색만 움직인다: .k에 달린 갈래 선은 따로 그려진다 */
+.draw .kp-node .v{animation:fade .25s ease-out backwards;animation-delay:var(--hit)}   /* .draw = 결과가 처음 그려질 때만 (app.js drawKgPath) */
+/* 전문가 KG(이번 진단, net-solo 방식): 왼쪽 원인 후보 목록, 오른쪽 그림(근거 | 원인 상자 | 조치). 선은 app.js drawKgFocus가 svg에 긋는다.
+   상자는 원인 하나만, 가는 테두리에 그림자 없음. 근거는 오른쪽 끝을 맞춰 글이 끝나는 곳에서 선이 나간다. 좁으면 목록은 위로, 그림은 세로로 쌓고 선을 지운다 */
+.kgf-card{container-type:inline-size}
+.kgf-q{margin:0;font-size:17px;font-weight:600}
+.kgf-q small{display:block;margin-top:2px;font-size:14px;font-weight:400;color:var(--text-muted)}
+.kgf-body{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-5);margin-bottom:var(--space-2)}
+.kgf-body:has(.kgf-list){grid-template-columns:168px minmax(0,1fr)}
+.kgf-list{display:flex;flex-direction:column;gap:2px;padding-right:var(--space-3);border-right:1px solid var(--border-subtle)}
+.kgf-list>span{padding:0 8px 4px;font-size:13px;color:var(--text-muted)}
+.kgf-list button{min-height:32px;padding:4px 8px;border:0;border-radius:var(--radius-sm);background:none;color:var(--text-secondary);font:inherit;font-size:14px;line-height:1.4;text-align:left;cursor:pointer;word-break:keep-all}
+.kgf-list button:hover{background:var(--bg-base);color:var(--text-primary)}
+.kgf-list button[aria-pressed="true"]{background:var(--accent-bg);color:var(--text-primary);font-weight:600}
+.kgf-pic{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 164px minmax(0,1fr);gap:0 48px;align-items:center;font-size:15px;line-height:1.45;word-break:keep-all}
+.kgf-pic>svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.kgf-pic path{fill:none;stroke:var(--border-strong);stroke-width:1.25}
+.kgf-pic path.hit{stroke:var(--accent);stroke-width:2}
+.kgf-pic .kgf-h{margin:0 0 var(--space-2);font-size:13px;font-weight:600;color:var(--text-muted)}
+.kgf-box{position:relative;width:fit-content;max-width:100%;margin-bottom:var(--space-3)}
+.kgf-box small{display:block;font-size:12px;color:var(--text-muted)}
+.kgf-ev{text-align:right} .kgf-ev .kgf-box{margin-left:auto}
+.kgf-ev .hit{color:var(--accent);font-weight:600} .kgf-ev .hit small{font-weight:400}
+.kgf-node{padding:var(--space-3) var(--space-4);border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--bg-base);text-align:center;font-size:16px;font-weight:600;text-wrap:balance}
+.kgf-node small{display:block;margin-bottom:2px;font-size:12px;font-weight:400;color:var(--text-muted)}
+.kgf-act summary{list-style:none;cursor:pointer}
+.kgf-act summary::-webkit-details-marker{display:none}
+.kgf-act summary small{color:var(--accent)}
+.kgf-act summary:hover small{text-decoration:underline;text-underline-offset:2px}
+.kgf-act details[open] summary small{color:var(--text-muted)}
+.kgf-proc{margin:var(--space-2) 0 0;padding-left:var(--space-3);border-left:1px solid var(--border-subtle);font-size:14px;color:var(--text-secondary)}
+.kgf-proc b{display:block;font-weight:600;color:var(--text-primary)}
+@container (max-width:640px){
+  .kgf-body:has(.kgf-list){grid-template-columns:minmax(0,1fr)}
+  .kgf-list{flex-direction:row;flex-wrap:wrap;padding:0 0 var(--space-3);border:0;border-bottom:1px solid var(--border-subtle)}
+  .kgf-list>span{flex-basis:100%}
+  .kgf-pic{grid-template-columns:minmax(0,1fr);gap:var(--space-4)}
+  .kgf-ev{text-align:left} .kgf-ev .kgf-box{margin-left:0}
+  .kgf-node{text-align:left}
+}
 @keyframes kp-down{from{transform:scaleY(0)}}
 @keyframes kp-right{from{transform:scaleX(0)}}
 @keyframes kp-dot{from{transform:scale(0)}}
 @keyframes kp-text{from{color:transparent}}
-.kp-node .k{color:var(--text-muted);font-size:14px}
+.kp-node .k{color:var(--text-secondary);font-size:15px}   /* 경로에서는 이름표가 줄의 뜻(원인인지 조치인지)을 알려 준다: 목록보다 한 단계 진하게 */
 .kp-node .v{color:var(--text-secondary)}
 .kp-node:is(.lv0,.lv1):not(.input) .v{color:var(--text-primary);font-weight:700}
 .kp-node .q{margin-left:var(--space-3);font-size:12px;font-weight:400;color:var(--text-muted)}
@@ -331,10 +351,10 @@ button:disabled{cursor:default;opacity:.45}
 .log .lhead{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:var(--space-2);font-size:14px}
 .log .lhead b{font-weight:600;color:var(--text-primary)} .log .lhead span{font:400 12px/1.5 var(--font-mono);color:var(--text-muted)}
 .logrow{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle)}
-.logrow .lt{width:56px;flex:none;font:400 12px/1.5 var(--font-mono);color:var(--text-muted)}
+.logrow .lt{width:64px;flex:none;font:400 13px/1.5 var(--font-mono);color:var(--text-muted)}   /* 11/19 사용자: 로그 글자도 결과 화면 이름표처럼 크게 */
 .tag{flex:none;min-width:34px;text-align:center;padding:1px 6px;border-radius:var(--radius-sm);font:700 12px/1.6 var(--font-mono);background:var(--bg-input);color:var(--text-secondary)}
 .tag.ok{background:var(--success-bg);color:var(--success)} .tag.warn{background:var(--warning-bg);color:var(--warning)} .tag.checking{background:var(--accent-bg);color:var(--accent)}
-.logrow .lx{flex:1;min-width:0;font:400 14px/1.5 var(--font-mono);color:var(--text-secondary);overflow-wrap:anywhere}
+.logrow .lx{flex:1;min-width:0;font:400 15px/1.5 var(--font-mono);color:var(--text-secondary);overflow-wrap:anywhere}
 .seg .cap{font:400 14px/1.5 var(--font-mono);color:var(--text-muted);text-align:center;white-space:nowrap} .seg.bad .cap{color:var(--critical)}
 .seglink{flex:none;height:40px;display:flex;align-items:center;padding:0 var(--space-2);font:700 12px/1 var(--font-mono);color:var(--critical);white-space:nowrap}
 /* 전문가 연결 경로(topologyHTML): 칸 = 글리프 + 이름 + 측정값, 칸 사이 선. 상태는 테두리 색 + 글리프 + 글자(색만으로 구분하지 않음) */
@@ -475,7 +495,7 @@ button:disabled{cursor:default;opacity:.45}
 .kg-pc p{margin:0} .kg-pc ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-1)}
 .kg-pc .rel{display:block;font-size:12px;color:var(--text-muted)} .kg-pc .none{color:var(--text-muted)}
 .kg-hint{margin:0;color:var(--text-muted);font-size:12px}
-.idref{min-height:24px;padding:0 var(--space-1);background:none;border:0;color:var(--text-primary);font:400 12px var(--font-mono);text-align:left;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.idref{min-height:24px;padding:0 var(--space-1);background:none;border:0;color:var(--text-primary);font:400 13px var(--font-mono);text-align:left;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .idref.nb{font:400 14px var(--font-ui)} .idref:hover{color:var(--accent);text-decoration-style:solid}
 .logrow.hit{background:var(--bg-input);border-radius:var(--radius-sm)}
 
