@@ -112,6 +112,7 @@ export function kgAllHTML(all, { sel = null, path = {}, evidence = { rows: [] },
   if (!all) return kgfCard('all', err ? `<p class="state err" role="alert">지식그래프 전체를 불러오지 못했습니다: ${esc(err)}</p>` : '<p class="state" role="status">불러오는 중…</p>');
   const now = new Set(kgGroups(evidence.rows).causes.map(([c]) => c.value)), causes = all.causes;
   const first = causes.findIndex(c => now.has(c.name)), i = causes[sel] ? sel : Math.max(first, 0), c = causes[i];
+  if (!c) return kgfCard('all', '<p class="state">지식그래프에 원인 없음</p>');   // Neo4j에 증상만 있고 원인 관계가 없을 때
   const mark = name => now.has(name) ? '<small>이번 진단</small>' : '';
   const list = kgfList(`원인 전체 ${causes.length}`, causes.map((x, k) => `<button type="button" data-kgf="${k}" aria-pressed="${k === i}"${now.has(x.name) ? ' class="hit"' : ''}>${nw(x.name)}${mark(x.name)}</button>`));
   const ev = c.symptoms.map(s => s.title === path.symptom ? kgfBox('증상', s.title, `${s.id}, 이번 진단`, ' hit') : kgfBox('증상', s.title, s.id)).join('') + c.conditions.map(t => kgfBox('확인할 조건', t)).join('');

@@ -71,8 +71,14 @@ const inputBox = (box, s, submit) => ({ ...box, value: s.text ?? '', examples: E
 function intentNext(s, key, event, value, destination, source, classify) {   // intent_flow.next_key
   if (destination === 'scanning') for (const k of Object.keys(s)) if (k.startsWith('_intent_')) delete s[k];
   if (destination === 'followup_entry') return 'followup_WFU14';
+  if (key === 'followup_intent_choice' && event === 'back' && s._intent_all) { delete s._intent_all; return key; }   // 나머지 증상 목록에서 이전: 분류 후보로
   if (event !== 'answer' || !TEXT_KEYS.includes(key)) return destination;
-  if (value !== 'text') { delete s._intent_error; return key === 'followup_intent_choice' ? destination : 'followup_WFU14_end'; }
+  if (value !== 'text') {
+    delete s._intent_error;
+    if (key === 'followup_intent_choice' && value === 'none' && !s._intent_all) return intentRest(s, source);
+    return key === 'followup_intent_choice' ? destination : 'followup_WFU14_end';
+  }
+  delete s._intent_all;
   if (!classify) { s._intent_error = true; return 'followup_WFU14_end'; }
   const result = classify(s.text) ?? { needs_clarification: true, clarification: { reasons: ['uninformative_input'] } };
   delete s._intent_error;
@@ -109,13 +115,25 @@ function intentNext(s, key, event, value, destination, source, classify) {   // 
   return 'followup_intent_choice';
 }
 
+function intentRest(s, source) {                                                // intent_flow._rest: 이 중에 없음 → 나머지 증상
+  const page = structuredClone(s._intent_screen), shown = new Set(page.answers.map(a => a.id));
+  const ids = [...VALID].filter(id => !shown.has(id) && Object.hasOwn(source, 'followup_' + id));
+  page.intent = { input_title: '증상 설명', title: '나머지 증상' };
+  page.answers = ids.map(id => ({ id, title: source['followup_' + id].headline.title }));
+  s._intent_all = page;
+  return 'followup_intent_choice';
+}
+const intentPage = s => s._intent_all ?? s._intent_screen;                      // intent_flow._page
+const intentRoutes = s => s._intent_all                                         // intent_flow.table: 목록의 연결은 목록에서, 분류 후보 연결은 그대로 둔다
+  ? { ...Object.fromEntries(s._intent_all.answers.map(a => [a.id, 'followup_' + a.id])), text: 'followup_intent_choice' } : s._intent_routes ?? {};
+
 function intentPaint(s, p) {                                                    // intent_flow.paint
   const key = s.key;
   if (key.startsWith('followup_') && !TEXT_KEYS.includes(key) && (s.stack ?? []).some(k => TEXT_KEYS.includes(k)))
     for (const step of p.rail.steps) if (step.state === 'current') step.edit = '설명 수정';   // 글을 쓴 뒤의 화면: 쓴 설명으로 한 번에 돌아가는 링크
-  if (key === 'followup_intent_choice' && s._intent_screen) {
-    for (const n of ['headline', 'answers', 'text_input', 'intent']) p[n] = structuredClone(s._intent_screen[n]);
-    p.actions.footnote = s._intent_screen.actions.footnote;
+  if (key === 'followup_intent_choice' && intentPage(s)) {
+    for (const n of ['headline', 'answers', 'text_input', 'intent']) p[n] = structuredClone(intentPage(s)[n]);
+    p.actions.footnote = intentPage(s).actions.footnote;
   }
   if (key === 'followup_WFU14' || key === 'followup_WFU14_retry') {
     const retry = key === 'followup_WFU14_retry';
@@ -348,9 +366,9 @@ export function createServer(F, { now = clock, newId = hex8, intent = Boolean(F[
       return r;
     }
     const key = s.key, screens = load('screens.json');
-    if (intent && s._intent_screen) screens.followup_intent_choice = structuredClone(s._intent_screen);   // intent_flow.screens
+    if (intent && intentPage(s)) screens.followup_intent_choice = structuredClone(intentPage(s));   // intent_flow.screens
     const scen = load('scenarios.json')[key.startsWith('followup_') ? 'followup' : s.scenario];   // main.py와 같음: 세부 질문은 어느 흐름에서 왔든 followup 전이표
-    const table = intent && key === 'followup_intent_choice' ? { answer: s._intent_routes ?? {}, back: '@prev' } : scen.transitions[key] ?? {};   // intent_flow.table
+    const table = intent && key === 'followup_intent_choice' ? { answer: intentRoutes(s), back: '@prev' } : scen.transitions[key] ?? {};   // intent_flow.table
     const box = screens[key].text_input;
     if (text !== null || (box && value === 'text')) {                          // 사용자가 쓴 글: 길이·빈칸 검사 (main.py와 같음, 글자 수는 파이썬 len처럼 코드포인트)
       if (!(box && event === 'answer' && value === 'text' && (text ?? '').trim() && [...text].length <= box.max))
