@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=9ddfe045';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFixSteps, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=9ddfe045';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=76759ea0';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFixSteps, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=76759ea0';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgTab: 'now', kgAll: null, kgAllErr: null, kgAllSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -38,14 +38,21 @@ document.querySelectorAll('[data-scenario]').forEach(a => { if (a.dataset.scenar
 let kgDrawn = null;
 const drawKgPath = () => kgDrawn !== state.session?.payload && Boolean(kgDrawn = state.session?.payload);
 
+// 측정 조치의 해결됨(11/19 사용자): 서버가 다시 재는 동안 진단 단계가 해결 방법 ✓ → '고쳤는지 확인'(지금)을 지나간다. 다시 재기는 send의 서버가 한다
+function railRecheck() {
+  const steps = state.session?.payload?.rail?.steps;
+  if (!steps?.some(s => s.label === '고쳤는지 확인')) return;
+  const rail = steps.map(s => s.label === '해결 방법' ? { ...s, state: 'done' } : s.label === '고쳤는지 확인' ? { ...s, state: 'current checking' } : s);
+  $('#rail').innerHTML = foldableRailHTML(railStepsHTML(rail), state.railCollapsed);
+}
+
 // 세부 질문 KG 결과 → 해결 방법 → 완료(뒤의 둘은 화면에서만 연다): 왼쪽 진단 단계를 지금 페이지 순서에 맞춘다 (11/19 사용자)
 function kgRail(p, page) {
   const n = kgFixSteps(p.evidence).length, at = p._fix ?? 0, causes = p.evidence.rows.filter(r => r.label === '원인 후보').length;
   const set = {
     '원인 찾기': { ...(page === 'result' ? { state: 'current' } : { state: 'done', edit: undefined }), ...(causes ? { answer: `원인 후보 ${causes}개` } : {}) },   // 원인이 없으면 서버 답 그대로
     '해결 방법': page === 'fix' ? { state: 'current', answer: `${Math.min(at + 1, n)} / ${n} 단계` } : page === 'done' ? { state: 'done', answer: `${at + 1}단계에서 해결` } : {},
-    '고쳤는지 확인': page === 'done' ? { state: 'done', answer: '해결됨' } : {},
-    '완료': page === 'done' ? { state: 'done', answer: null } : {},
+    '완료': page === 'done' ? { state: 'done', answer: null } : {},   // 세부 질문 진단 단계에는 '고쳤는지 확인'이 없다(다시 잴 값이 없음)
   };
   return p.rail.steps.map(s => ({ ...s, ...set[s.label] }));
 }
@@ -830,7 +837,13 @@ export function onEvent(event, el) {
     // W3: "됐어요/안 됐어요" 뒤에 기기가 다시 재는 순간을 보여주고 나서 넘어간다
     case 'step_done': case 'step_failed':
       el.disabled = true; setStatusPill({ tone: 'checking', text: '다시 확인하는 중…' });
-      state.timer = setTimeout(() => send(event), 900); return;
+      if (event === 'step_done') railRecheck();
+      state.timer = setTimeout(async () => {
+        await send(event);
+        // 실서버: 다시 잰 값이 아직 정상이 아니면 409로 조치 화면에 머문다 → 지나가던 진단 단계를 받은 그대로 되돌린다
+        if (event === 'step_done' && state.view === 'home' && state.session?.payload?.screen === 'steps')
+          $('#rail').innerHTML = foldableRailHTML(railStepsHTML(state.session.payload.rail.steps), state.railCollapsed);
+      }, 900); return;
     case 'normal_view': return leaveExpert();        // 전문가 콘솔 → 하던 진단 화면 (설정은 켜진 채)
     case 'skip': clearTimeout(state.timer); return send('skip');
     default: return send(event);

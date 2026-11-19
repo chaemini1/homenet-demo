@@ -1,5 +1,5 @@
-@import url("tokens.css?v=9ddfe045");
-@import url("first-page.css?v=9ddfe045");
+@import url("tokens.css?v=76759ea0");
+@import url("first-page.css?v=76759ea0");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -109,6 +109,8 @@ button:disabled{cursor:default;opacity:.45}
 .step-item{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-2) 0}
 .step-item .marker{width:20px;height:20px;border-radius:50%;flex:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font:700 12px/1 var(--font-mono)}
 .step-item.current .marker{border-color:var(--accent)} .step-item.current .marker::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.step-item.checking .marker::after{animation:rail-check .45s ease-in-out infinite alternate}   /* 측정 조치의 해결됨 뒤 다시 재는 동안(0.9초) '고쳤는지 확인' 점이 깜빡이며 지나간다 (app.js railRecheck) */
+@keyframes rail-check{from{transform:scale(.4);opacity:.4}to{transform:scale(1);opacity:1}}
 .step-item.done .marker{background:var(--success);border-color:var(--success);color:var(--text-on-accent)}
 .step-item .lab{font-size:16px;font-weight:600;color:var(--text-muted)}
 .step-item.current .lab,.step-item.done .lab{color:var(--text-primary)}
