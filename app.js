@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=76759ea0';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFixSteps, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=76759ea0';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=0dd3eee2';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFixSteps, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=0dd3eee2';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgTab: 'now', kgAll: null, kgAllErr: null, kgAllSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -747,6 +747,7 @@ document.addEventListener('click', e => {
   }
   if (el.dataset.example) { const t = $('#answer-text'); t.value = el.dataset.example; t.dispatchEvent(new Event('input', { bubbles: true })); return void t.focus(); }
   if (el.dataset.answer) { state.selectedAnswer = el.dataset.answer; showScreen(state.session.payload); return; }
+  if (e.detail > 1) return;   // 더블클릭의 둘째 클릭: 첫 클릭이 화면을 바꾸면 같은 자리의 새 버튼(끝내기·다시 진단하기)에 닿는다
   onEvent(el.dataset.event, el);
 });
 
