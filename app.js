@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=768b80d1';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=768b80d1';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=9ddfe045';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFixSteps, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=9ddfe045';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgTab: 'now', kgAll: null, kgAllErr: null, kgAllSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -38,6 +38,18 @@ document.querySelectorAll('[data-scenario]').forEach(a => { if (a.dataset.scenar
 let kgDrawn = null;
 const drawKgPath = () => kgDrawn !== state.session?.payload && Boolean(kgDrawn = state.session?.payload);
 
+// 세부 질문 KG 결과 → 해결 방법 → 완료(뒤의 둘은 화면에서만 연다): 왼쪽 진단 단계를 지금 페이지 순서에 맞춘다 (11/19 사용자)
+function kgRail(p, page) {
+  const n = kgFixSteps(p.evidence).length, at = p._fix ?? 0, causes = p.evidence.rows.filter(r => r.label === '원인 후보').length;
+  const set = {
+    '원인 찾기': { ...(page === 'result' ? { state: 'current' } : { state: 'done', edit: undefined }), ...(causes ? { answer: `원인 후보 ${causes}개` } : {}) },   // 원인이 없으면 서버 답 그대로
+    '해결 방법': page === 'fix' ? { state: 'current', answer: `${Math.min(at + 1, n)} / ${n} 단계` } : page === 'done' ? { state: 'done', answer: `${at + 1}단계에서 해결` } : {},
+    '고쳤는지 확인': page === 'done' ? { state: 'done', answer: '해결됨' } : {},
+    '완료': page === 'done' ? { state: 'done', answer: null } : {},
+  };
+  return p.rail.steps.map(s => ({ ...s, ...set[s.label] }));
+}
+
 export const SCREENS = {
   home: s => ({
     rail: railHomeHTML(s),
@@ -51,12 +63,29 @@ export const SCREENS = {
       + `<p class="foot">${esc(p.footnote)}</p><div class="spacer"></div>` + actionsHTML(p.actions),
   }),
   result: p => ({
-    rail: railStepsHTML(p.rail.steps),
+    rail: railStepsHTML(p.kg_path ? kgRail(p, 'result') : p.rail.steps),
     stage: pathCardHTML(p.path) + termsHTML(headlineHTML(p.headline)   // 용어 설명은 결과의 글과 목록에만 (경로 칸 이름에는 붙이지 않는다)
-      + `<div class="detail">${p.kg_path ? kgPathHTML(p.kg_path, p.evidence, drawKgPath()) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`
-      + (p.kg_path ? kgFixHTML(p.evidence, p._fix ?? 0) : ''))
-      + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>' + actionsHTML(p.actions),
+      + `<div class="detail">${p.kg_path ? kgPathHTML(p.kg_path, p.evidence, drawKgPath()) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`)
+      + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>'
+      // 세부 질문 KG 결과: 끝내기 대신 '해결 방법 보기' → 다음 페이지(kgfix). 조치가 없으면 끝내기 그대로
+      + actionsHTML(p.kg_path && kgFixSteps(p.evidence).length ? { ...p.actions, primary: { label: '해결 방법 보기', event: 'kg_fix_open', disabled: false } } : p.actions),
   }),
+  // 세부 질문 해결 방법 페이지(11/19 사용자): 서버 화면은 그대로 결과(followup_done)이고, 이 페이지는 화면에서만 연다(payload._fixOpen). 이전은 결과로
+  kgfix: p => ({
+    rail: railStepsHTML(kgRail(p, 'fix')),
+    stage: pathCardHTML(p.path) + termsHTML(headlineHTML({ pill: null, title: '해결 방법', body: null }) + kgFixHTML(p.evidence, p._fix ?? 0))
+      + '<div class="spacer"></div>' + actionsHTML({ footnote: '', secondary: { label: '이전', event: 'kg_fix_back', disabled: false }, primary: { label: '끝내기', event: 'finish', disabled: false } }),
+  }),
+  // 해결됨을 누른 뒤의 완료 페이지: 측정 조치의 완료 화면(done)과 같은 모양. 끝내기를 눌러야 진단이 끝난다
+  kgdone: p => {
+    const s = kgFixSteps(p.evidence)[p._fix ?? 0];
+    return {
+      rail: railStepsHTML(kgRail(p, 'done')),
+      stage: pathCardHTML(p.path) + termsHTML(headlineHTML({ pill: null, title: '해결됨', body: null })
+        + `<div class="detail">${metricListHTML({ title: '이번 진단', rows: [{ label: '증상', value: p.kg_path.symptom, status: 'neutral' }, { label: '원인', value: s.cause, status: 'warn' }, { label: '한 일', value: s.title, status: 'ok' }] })}</div>`)
+        + '<div class="spacer"></div>' + actionsHTML({ footnote: '', secondary: { label: '진단 기록 보기', event: 'records', disabled: false }, primary: { label: '끝내기', event: 'finish', disabled: false } }),
+    };
+  },
   steps: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + headlineHTML(p.headline)
@@ -483,10 +512,12 @@ function expertOff() {
 export function showScreen(raw) {
   if (state.view === 'intro') return;
   const payload = localize(raw);
-  setStatusPill(payload.status_pill);
-  const render = SCREENS[payload.screen];
+  // 세부 질문 해결 방법·완료 페이지(화면에서만): 상태 글자·휴대폰 배치는 측정 조치 단계(steps)·완료(done) 화면과 같게
+  const fix = payload._fixDone ? ['kgdone', 'done', { tone: 'ok', text: '해결됨' }] : payload._fixOpen ? ['kgfix', 'steps', { tone: 'warn', text: '조치 진행 중' }] : null;
+  setStatusPill(fix ? fix[2] : payload.status_pill);
+  const render = SCREENS[fix ? fix[0] : payload.screen];
   if (!render) { showError('#stage', new Error(`아직 만들지 않은 화면입니다: ${payload.screen}`), showHome); return; }
-  paint(render(payload), payload.screen);
+  paint(render(payload), fix ? fix[1] : payload.screen);
   clearTimeout(state.timer);
   if (payload.screen === 'scanning') revealMeasuring(payload, 1);
   // "1분마다 다시 잼". 그림 시트가 열려 있으면 닫힐 때까지 미룬다 — 시트 뒤 화면만 바뀌면 시트 내용과 어긋나고, 닫을 때 포커스가 돌아갈 링크가 사라진다
@@ -760,9 +791,16 @@ export function onEvent(event, el) {
     case 'recheck_home': consentDeclined = false; return showHome(true);
     case 'restart': return start();
     case 'finish': return finish();
-    // 세부 질문 해결 방법: 해결됨이면 진단을 끝내고, 해결 안 됨이면 다음 조치로 (서버의 세부 질문 흐름은 그대로, 몇 번째인지는 이 결과 화면에만)
-    case 'kg_fix_done': return finish();
+    // 세부 질문 결과 → 해결 방법 → 완료 페이지: 서버 흐름은 그대로 두고 화면에서만 연다 (payload._fixOpen·_fix·_fixDone)
+    case 'kg_fix_open': case 'kg_fix_back':   // 서버 응답을 기다리는 중이면 늦게 온 응답이 덮으므로 누르지 않은 셈
+      if (state.busy) return;
+      state.session.payload._fixOpen = event === 'kg_fix_open'; showScreen(state.session.payload); window.scrollTo(0, 0);
+      return void (event === 'kg_fix_back' && $('#stage [data-event="kg_fix_open"]')?.focus());   // 돌아오면 누른 자리(해결 방법 보기)로
+    case 'kg_fix_done':   // 해결됨 → 완료 페이지 (끝내기를 눌러야 진단이 끝난다)
+      if (state.busy || !state.session.payload._fixOpen || (state.session.payload._fix ?? 0) >= kgFixSteps(state.session.payload.evidence).length) return;
+      state.session.payload._fixDone = true; showScreen(state.session.payload); return void window.scrollTo(0, 0);
     case 'kg_fix_failed':   // 누른 버튼은 다시 그리면 잠기므로 포커스를 다음 단계(없으면 문의 안내)로 옮긴다
+      if (state.busy) return;
       state.session.payload._fix = (state.session.payload._fix ?? 0) + 1; showScreen(state.session.payload);
       return void ($('#stage .kgfix .step.todo .yes') ?? $('#stage .kgfix .intent-note'))?.focus();
     case 'answer': return send('answer', state.selectedAnswer);

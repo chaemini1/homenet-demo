@@ -1,5 +1,5 @@
-@import url("tokens.css?v=768b80d1");
-@import url("first-page.css?v=768b80d1");
+@import url("tokens.css?v=9ddfe045");
+@import url("first-page.css?v=9ddfe045");
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}   /* 한국어가 낱말 중간("누|르거나", "조|치부터")에서 꺾이지 않게. 959px 아래에만 있던 것을 모든 폭으로 (11/6). 한 줄보다 긴 주소는 그래도 꺾임 */
@@ -666,6 +666,7 @@ body{font-variant-numeric:tabular-nums}
 .app:not([data-screen=expert]) .card.path .conclusion{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;padding:0}
 .app:not([data-screen=expert]) :is(.msrc,.msrc-note){display:none}  /* 근거 줄마다 붙은 출처 링크와 안내: 사용자가 진단하는 데는 안 쓴다. 전문가 화면에는 남긴다 */
 .app:not([data-screen=expert]) .metric:has(+ .msrc){border-bottom:1px solid var(--border-subtle)}  /* 출처를 숨기면 그 위 줄의 밑줄이 빠지므로 되살린다 */
+.app:not([data-screen=expert]) .kgpath > .msrc{display:flex} .app:not([data-screen=expert]) .kgpath > .metric:has(+ .msrc){border-bottom:0}   /* 세부 질문 결과의 참고 자료: 문서 이름이 내용이라 일반 화면에도 보인다 (11/19 사용자) */
 .card.recent .foot{display:none}                                    /* 최근 기록 아래 회선 점검 권유 */
 /* 화면이 바뀔 때 스크린리더용으로 제목에 초점을 옮긴다(app.js). 제목은 누르는 대상이 아니라 테두리는 그리지 않는다 (11/17 사용자 결정) */
 h1[tabindex="-1"]:focus{outline:none}
