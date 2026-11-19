@@ -78,6 +78,26 @@ export function kgPathHTML(path, evidence, draw = true) {
   }).join('');
   return `<div class="mlist kgpath"><div class="mhead"><b>찾은 경로</b></div><ol class="kp-tree${draw ? ' draw' : ''}" style="--step:${Math.min(180, Math.round(1500 / n))}ms">${head}${tree}</ol>${kgRestHTML(rest)}</div>`;
 }
+// 세부 질문 해결 방법(11/19 사용자): 원인 후보 순서대로 조치를 한 단계씩. 측정 조치 단계와 같은 모양이지만 단계 이동은 서버가 아니라 화면(app.js)이 센다.
+// at번째만 누를 수 있다. 앞 단계는 해결 안 됨, 전부 안 되면 문의 안내
+export function kgFixHTML(evidence, at) {
+  const steps = [];
+  for (const [cause, ...kids] of kgGroups(evidence.rows).causes) {
+    let act = null;   // 절차는 같은 원인 후보의 바로 앞 조치에만 붙인다
+    for (const m of kids) {
+      if (m.label === '확인·조치') steps.push(act = { title: m.value, hint: `원인 후보: ${cause.value}`, procs: [] });
+      else if (m.label.startsWith('상세 절차 · ') && act) act.procs.push(`${m.label.slice(8)}: ${m.value}`);
+    }
+  }
+  if (!steps.length) return '';
+  const step = (s, i) => {
+    const st = i < at ? 'failed' : i === at ? 'todo' : 'upcoming', dis = i === at ? '' : ' disabled';
+    return `<div class="step ${st}"><div class="head"><div class="num">${i + 1}</div><div><div class="t">${esc(s.title)}</div><div class="h">${esc(s.hint)}</div>${s.procs.map(p => `<div class="h">${esc(p)}</div>`).join('')}</div></div>`
+      + `<div class="confirm"><button type="button" class="yes" data-event="kg_fix_done"${dis}>해결됨</button><button type="button" class="no" data-event="kg_fix_failed"${dis}>해결 안 됨</button></div></div>`;
+  };
+  return `<div class="mlist kgfix"><div class="mhead"><b>해결 방법</b></div><div class="steps">${steps.map(step).join('')}</div>`
+    + (at >= steps.length ? '<p class="intent-note warn" tabindex="-1">모두 해 봐도 안 되면 통신사·제조사 문의 권장함</p>' : '') + '</div>';
+}
 // 전문가 KG(이번 진단, net-solo 방식 11/18 사용자): 원인 후보 하나를 가운데 두고, 왼쪽에 그 원인을 가리킨 근거(고른 증상·확인할 조건),
 // 오른쪽에 해 보는 조치(펼치면 OS별 상세 절차). 원인이 여럿이면 위에서 고른다(sel). 선은 그린 뒤 app.js drawKgFocus가 긋는다
 const nw = s => esc(s).replace(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+|[^\s·]+(?:·[^\s·]+)+/g, '<span class="nw">$&</span>');   // 좁은 칸에서 Wi-Fi가 Wi-/Fi로, 설정·조회가 설정/·조회로 끊기지 않게
@@ -151,8 +171,8 @@ export function intentHTML(p, text = '', selected) {
     + '</section></div>';
 }
 export const answersHTML = (list, selected) => `<div class="answers" style="--cols:${ANSWER_COLS[list.length] ?? Math.min(list.length, 3)}">${list.map(a => answerCardHTML(a, a.id === selected)).join('')}</div>`;
-export function headlineHTML(h) {
-  return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1>${h.body ? `<p>${esc(h.body)}</p>` : ''}</div>`;
+export function headlineHTML(h, note = '') {
+  return `<div class="headline">${h.pill ? pillHTML(h.pill) : ''}<h1>${esc(h.title)}</h1>${h.body ? `<p>${esc(h.body)}</p>` : ''}${note ? `<p>${esc(note)}</p>` : ''}</div>`;
 }
 // 용어 설명(11/17 회의): 결과 화면에서 낯선 용어에 마우스를 올리거나 누르면 뜻이 뜬다(app.js). 설명은 개조식 한두 문장
 export const GLOSSARY = [

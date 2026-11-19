@@ -1,5 +1,5 @@
-import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=028a33d1';
-import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=028a33d1';
+import { getStatus, startDiagnosis, advance, getRecords, clearRecords, getSettings, getExpert, getKg, getKgAll, getExplanation, demoBroken } from './api.js?v=768b80d1';
+import { esc, actionHTML, pathCardHTML, headlineHTML, actionsHTML, railHomeHTML, recentCardHTML, dotHTML, metricListHTML, stepConfirmHTML, stepInfoHTML, railStepsHTML, foldableRailHTML, answersHTML, textInputHTML, intentHTML, whyAskingHTML, progressHTML, recordsRailHTML, recordsStageHTML, settingsRailHTML, settingsStageHTML, expertTopbarHTML, expertRailHTML, expertStageHTML, sheetHTML, consentHTML, consentServerHTML, licensesHTML, ledGuideHTML, firstPage, kgGraphHTML, kgPanelHTML, kgGeneralHTML, kgLinkHTML, kgLine, kgPathHTML, kgFixHTML, kgFocusHTML, kgAllHTML, termsHTML } from './render.js?v=768b80d1';
 
 const $ = s => document.querySelector(s);
 const state = { status: null, session: null, selectedAnswer: null, picked: {}, ranked: null, scanResult: null, text: '', timer: null, busy: false, starting: false, records: null, recordsOpen: null, settings: null, settingsValues: {}, settingsActive: null, expert: null, kg: null, kgErr: null, kgSel: null, kgCause: 0, kgTab: 'now', kgAll: null, kgAllErr: null, kgAllSel: null, kgView: 'all', railCollapsed: (() => { try { return localStorage.getItem('homenet.railCollapsed') === '1'; } catch { return false; } })(), view: 'home', checkedAt: null };
@@ -41,7 +41,8 @@ const drawKgPath = () => kgDrawn !== state.session?.payload && Boolean(kgDrawn =
 export const SCREENS = {
   home: s => ({
     rail: railHomeHTML(s),
-    stage: pathCardHTML(s.path) + headlineHTML(s.headline) + actionsHTML(s.actions, 'home-cta') + recentCardHTML(s),   // 진단 시작이 1280×720에서도 스크롤 없이 보이게 헤드라인 바로 아래
+    stage: pathCardHTML(s.path) + headlineHTML(s.headline, s.path?.conclusion?.tone === 'ok' ? '그래도 문제가 있다면 진단 시작 권장함' : '')   // 정상이어도 진단할 수 있다는 안내 (11/19 사용자가 고른 문구). 판단은 데모·실측 모두 보내는 경로 결론으로
+      + actionsHTML(s.actions, 'home-cta') + recentCardHTML(s),   // 진단 시작이 1280×720에서도 스크롤 없이 보이게 헤드라인 바로 아래
   }),
   scanning: p => ({
     rail: railStepsHTML(p.rail.steps),
@@ -52,7 +53,8 @@ export const SCREENS = {
   result: p => ({
     rail: railStepsHTML(p.rail.steps),
     stage: pathCardHTML(p.path) + termsHTML(headlineHTML(p.headline)   // 용어 설명은 결과의 글과 목록에만 (경로 칸 이름에는 붙이지 않는다)
-      + `<div class="detail">${p.kg_path ? kgPathHTML(p.kg_path, p.evidence, drawKgPath()) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`)
+      + `<div class="detail">${p.kg_path ? kgPathHTML(p.kg_path, p.evidence, drawKgPath()) : metricListHTML(p.evidence)}${metricListHTML(p.candidates)}</div>`
+      + (p.kg_path ? kgFixHTML(p.evidence, p._fix ?? 0) : ''))
       + kgLinkHTML(p.graph_link) + '<div class="spacer"></div>' + actionsHTML(p.actions),
   }),
   steps: p => ({
@@ -758,6 +760,11 @@ export function onEvent(event, el) {
     case 'recheck_home': consentDeclined = false; return showHome(true);
     case 'restart': return start();
     case 'finish': return finish();
+    // 세부 질문 해결 방법: 해결됨이면 진단을 끝내고, 해결 안 됨이면 다음 조치로 (서버의 세부 질문 흐름은 그대로, 몇 번째인지는 이 결과 화면에만)
+    case 'kg_fix_done': return finish();
+    case 'kg_fix_failed':   // 누른 버튼은 다시 그리면 잠기므로 포커스를 다음 단계(없으면 문의 안내)로 옮긴다
+      state.session.payload._fix = (state.session.payload._fix ?? 0) + 1; showScreen(state.session.payload);
+      return void ($('#stage .kgfix .step.todo .yes') ?? $('#stage .kgfix .intent-note'))?.focus();
     case 'answer': return send('answer', state.selectedAnswer);
     case 'classify': return send('answer', 'text').then(() => {   // 같은 화면이라 paint가 포커스를 찾기 버튼에 두므로, 결과 칸 제목으로 옮겨 읽기 도구가 결과를 읽게 한다
       const h = $('#intent-out-h'); if (!h) return;
